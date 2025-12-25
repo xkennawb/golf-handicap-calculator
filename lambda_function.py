@@ -1027,59 +1027,91 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         message += "\n"
     
     # ========================================
-    # BEST/WORST MONTHS (Current year only)
     # ========================================
-    player_monthly_stats = {}
-    
-    # Calculate stats for each player for each month
+    # PERFORMANCE TRENDS (Spark Lines)
+    # ========================================
+    # Calculate monthly averages for each player throughout the year
+    monthly_trends = {}
     for round_data in current_year_rounds:
         round_date = parse_date_flexible(round_data['date'])
-        month_name = round_date.strftime('%B')
+        month_num = round_date.month
         
         for player in round_data['players']:
             name = player['name']
-            if name not in player_monthly_stats:
-                player_monthly_stats[name] = {}
-            
-            if month_name not in player_monthly_stats[name]:
-                player_monthly_stats[name][month_name] = {
-                    'total': 0,
-                    'rounds': 0
-                }
-            
-            player_monthly_stats[name][month_name]['total'] += player['stableford']
-            player_monthly_stats[name][month_name]['rounds'] += 1
+            if name not in monthly_trends:
+                monthly_trends[name] = {i: [] for i in range(1, 13)}  # Jan=1 to Dec=12
+            monthly_trends[name][month_num].append(player['stableford'])
     
-    # Find best/worst months for each player
-    best_worst_months = {}
-    for name, months in player_monthly_stats.items():
-        if len(months) >= 2:  # Only show if played in at least 2 months
-            month_avgs = {}
-            for month, stats in months.items():
-                if stats['rounds'] >= 2:  # At least 2 rounds in the month
-                    month_avgs[month] = stats['total'] / stats['rounds']
-            
-            if len(month_avgs) >= 2:
-                best_month = max(month_avgs.items(), key=lambda x: x[1])
-                worst_month = min(month_avgs.items(), key=lambda x: x[1])
-                best_worst_months[name] = {
-                    'best': best_month,
-                    'worst': worst_month
-                }
-    
-    # Display best/worst months
-    if best_worst_months:
-        message += "*📆 BEST/WORST MONTHS ({})* \n\n".format(current_year)
+    # Generate spark lines
+    if monthly_trends:
+        message += "*📈 2025 PERFORMANCE TRENDS:*\n\n"
         
-        # Sort by season leaderboard order (use sorted_players)
+        # Spark line characters from low to high
+        spark_chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+        
+        # Sort by season leaderboard order
         for name, stats in sorted_players:
-            if name in best_worst_months:
+            if name in monthly_trends:
                 display_name = get_display_name(name)
-                best_month, best_avg = best_worst_months[name]['best']
-                worst_month, worst_avg = best_worst_months[name]['worst']
-                message += f"{display_name}:\n"
-                message += f"   🌟 Best: {best_month} ({best_avg:.1f} avg)\n"
-                message += f"   ❄️ Worst: {worst_month} ({worst_avg:.1f} avg)\n\n"
+                
+                # Calculate monthly averages with carry-forward for continuous line
+                monthly_avgs = []
+                last_value = None
+                for month in range(1, 13):
+                    if monthly_trends[name][month]:
+                        avg = sum(monthly_trends[name][month]) / len(monthly_trends[name][month])
+                        monthly_avgs.append(avg)
+                        last_value = avg  # Remember this for next gap
+                    else:
+                        # Carry forward the last known value for continuous line
+                        monthly_avgs.append(last_value)
+                
+                # Generate spark line
+                # Filter out None values for min/max calculation
+                valid_avgs = [a for a in monthly_avgs if a is not None]
+                if len(valid_avgs) >= 3:  # Need at least 3 months of data
+                    min_avg = min(valid_avgs)
+                    max_avg = max(valid_avgs)
+                    range_avg = max_avg - min_avg if max_avg > min_avg else 1
+                    
+                    spark_line = ""
+                    for avg in monthly_avgs:
+                        if avg is None:
+                            # Skip leading months before first round
+                            continue
+                        else:
+                            # Normalize to 0-7 range for spark characters
+                            normalized = (avg - min_avg) / range_avg
+                            char_index = min(7, int(normalized * 7))
+                            spark_line += spark_chars[char_index]
+                    
+                    # Analyze trend: compare first quarter vs last quarter
+                    first_quarter = [v for v in valid_avgs[:4] if v is not None]
+                    last_quarter = [v for v in valid_avgs[-4:] if v is not None]
+                    
+                    if first_quarter and last_quarter:
+                        first_avg = sum(first_quarter) / len(first_quarter)
+                        last_avg = sum(last_quarter) / len(last_quarter)
+                        diff = last_avg - first_avg
+                        
+                        if diff > 2:
+                            trend_summary = "📈 Strong finish - trending upward"
+                        elif diff > 0.5:
+                            trend_summary = "↗️ Improving form through the year"
+                        elif diff < -2:
+                            trend_summary = "📉 Tailing off - started stronger"
+                        elif diff < -0.5:
+                            trend_summary = "↘️ Form declining as year progressed"
+                        else:
+                            trend_summary = "➡️ Consistent throughout the year"
+                    else:
+                        trend_summary = "Limited data for trend analysis"
+                    
+                    # Get overall season average
+                    season_avg = stats['avg_stableford']
+                    message += f"{display_name}: ({season_avg:.1f} avg)\n   {spark_line}\n   _{trend_summary}_\n\n"
+        
+        message += ""
     
     # ========================================
     # FUN FEATURES: Head-to-Head, Form, Badges, Predictions

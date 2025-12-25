@@ -16,7 +16,7 @@ Read these in order when starting a session:
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1533 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `lambda_function.py` (1631 lines, full version with all features)  
 **❌ NEVER EDIT**: `lambda_function_aws.py` (old stripped version, ignore it)
 
 ---
@@ -25,7 +25,7 @@ Read these in order when starting a session:
 
 ### Build and Deploy
 ```powershell
-.\build_lambda_package.ps1  # Uses Linux binaries for Lambda
+.\build_lambda_package.ps1  # Uses Linux binaries for Lambda compatibility
 python upload_lambda.py
 ```
 
@@ -94,6 +94,11 @@ The system now supports rounds from other courses (e.g., Monavale):
   - Includes average gross score for each player
 - 🏅 **MONTHLY TOURNAMENT** - Current month only
 - 📆 **BEST/WORST MONTHS** - Peak/worst performing months per player
+- 📈 **PERFORMANCE TRENDS** - Continuous line graphs showing year-long form
+  - Spark line visualization for each player (Jan-Dec)
+  - Carries forward last value when no rounds played (smooth trend)
+  - Trend summary comparing first quarter vs last quarter
+  - Shows if finishing strong, declining, or consistent
 - 🎮 **FUN STATS** - Head-to-head, hot hand, clutch factor (W-L format), predictions, rotating badges
 - 🎭 **AI COMMENTARY** - Weather-aware banter
   - Only mentions players who actually played that day
@@ -163,6 +168,7 @@ The system now supports rounds from other courses (e.g., Monavale):
 - ✅ Handicap calculations (WHS compliant, both nines for 18-hole rounds)
 - ✅ Multi-course support (Monavale rounds tracked separately)
 - ✅ Change tracking (week-over-week)
+- ✅ Performance trends (continuous line graphs with trend summaries)
 - ✅ AI commentary with weather (only mentions players who played)
 - ✅ WhatsApp-formatted summaries with bullet points
 - ✅ Fun features (rivalries, badges, predictions, clutch factor)
@@ -170,6 +176,7 @@ The system now supports rounds from other courses (e.g., Monavale):
 - ✅ Consistent labeling throughout
 - ✅ Historical summary support
 - ✅ 49 rounds in database (47 Warringah + 2 Monavale)
+- ✅ Version control (GitHub: xkennawb/golf-handicap-calculator, private repo)
 
 ---
 
