@@ -3,8 +3,8 @@
 ## 🚨 CRITICAL: Read This First
 
 ### Files to Edit
-- ✅ **ALWAYS EDIT**: `lambda_function.py` (936 lines, has AI commentary and all features)
-- ❌ **NEVER EDIT**: `lambda_function_aws.py` (old stripped version, ignore it)
+- ✅ **ALWAYS EDIT**: `lambda_function.py` (1591 lines, has AI commentary and all features)
+- ❌ **DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ### Build & Deploy
 ```powershell
@@ -203,5 +203,5 @@ Before deploying changes:
 
 ---
 
-**Last Updated**: December 20, 2025
+**Last Updated**: December 25, 2025
 **Status**: ✅ All systems operational

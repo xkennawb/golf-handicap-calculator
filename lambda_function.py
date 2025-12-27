@@ -128,25 +128,27 @@ def get_weather_for_round(round_date, tee_time_utc=None):
 BACK_9_CONFIG = {
     'name': 'Back 9 (Holes 10-18)',
     'par': 35,
-    'slope': 101,
-    'rating': 33.5,
-    'rating_display': 35.5,  # For course handicap display (avoids negative values)
+    'slope': 101,  # For index calculation (keeps existing handicaps stable)
+    'rating': 33.5,  # For index calculation (keeps existing handicaps stable)
+    'slope_display': 111,  # Warringah Whites official - for course handicap display only
+    'rating_display': 33.0,  # Warringah Whites official - for course handicap display only
 }
 
 FRONT_9_CONFIG = {
     'name': 'Front 9 (Holes 1-9)',
-    'par': 34,
-    'slope': 101,
-    'rating': 33.5,
-    'rating_display': 34.5,  # For course handicap display (avoids negative values)
+    'par': 35,  # Front 9 par is 35
+    'slope': 101,  # For index calculation (keeps existing handicaps stable)
+    'rating': 33.5,  # For index calculation (keeps existing handicaps stable)
+    'slope_display': 127,  # Warringah Whites official - for course handicap display only
+    'rating_display': 35.0,  # Warringah Whites official - for course handicap display only
 }
 
-def calculate_course_handicap(index, slope, rating_display, par):
+def calculate_course_handicap(index, slope, rating, par):
     """
-    Calculate course handicap using rating_display (≈ par) to avoid negative values
-    Formula: CH = round(Index × Slope/113 + (Rating - Par))
+    WHS Course Handicap Formula: CH = round(Index × Slope/113 + (Rating - Par))
+    Uses official Warringah Whites ratings from Tag Heuer
     """
-    ch = round(float(index) * slope / 113 + (rating_display - par))
+    ch = round(float(index) * slope / 113 + (rating - par))
     return max(0, ch)
 
 def estimate_pcc_from_weather(weather_string):
@@ -313,10 +315,15 @@ def parse_tag_heuer_url(url):
                     
                     # Extract numeric values from recap cells
                     recap_values = []
+                    recap_cells_text = []  # Keep all text for debugging
                     for cell in recap_cells:
                         cell_text = cell.get_text().strip()
+                        recap_cells_text.append(cell_text)  # Store all text
                         if cell_text and cell_text.isdigit():
                             recap_values.append(int(cell_text))
+                    
+                    print(f"DEBUG {name}: All recap cells = {recap_cells_text}")
+                    print(f"DEBUG {name}: Numeric values = {recap_values}")
                     
                     # For 18-hole cards: recap cells are in order:
                     # [Out_score, In_score, Total_score, Out_putts, In_putts, Total_putts, 
@@ -327,6 +334,9 @@ def parse_tag_heuer_url(url):
                         in_score = recap_values[1]
                         out_stableford = recap_values[9]
                         in_stableford = recap_values[10]
+                        
+                        print(f"DEBUG {name}: recap_values = {recap_values}")
+                        print(f"DEBUG {name}: OUT={out_score}, IN={in_score}, OUT_stab={out_stableford}, IN_stab={in_stableford}")
                         
                         # Determine which 9 holes were played
                         if in_score > 0 and out_score == 0:
@@ -598,16 +608,52 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
         print(f"DEBUG: Round date={latest_round['date']}, tee_time_utc={tee_time}")
         weather_info = get_weather_for_round(latest_round['date'], tee_time)
         print(f"DEBUG: Weather fetched: {weather_info}")
-        weather_text = f"\nWeather: {weather_info}" if weather_info else ""
         
-        # Build season leaderboard text if available
+        # Add weather emoji based on conditions
+        weather_emoji = ""
+        if weather_info:
+            weather_lower = weather_info.lower()
+            # Check sky conditions first
+            if 'rain' in weather_lower or 'shower' in weather_lower:
+                weather_emoji = "🌧️"
+            elif 'storm' in weather_lower or 'thunder' in weather_lower:
+                weather_emoji = "⛈️"
+            elif 'partly cloudy' in weather_lower or 'partly cloud' in weather_lower:
+                weather_emoji = "⛅"
+            elif 'cloud' in weather_lower or 'overcast' in weather_lower:
+                weather_emoji = "☁️"
+            elif 'clear' in weather_lower or 'sunny' in weather_lower or 'sun' in weather_lower:
+                weather_emoji = "☀️"
+            else:
+                # Default sunny emoji if no sky condition detected
+                weather_emoji = "☀️"
+            
+            # Add wind emoji if mentioned
+            if 'strong wind' in weather_lower or 'gust' in weather_lower or 'windy' in weather_lower:
+                weather_emoji += " 💨"
+            elif 'wind' in weather_lower or 'breeze' in weather_lower:
+                weather_emoji += " 🍃"
+            
+            weather_emoji += " "  # Add space after emoji
+        
+        weather_text = f"\nWeather: {weather_emoji}{weather_info}" if weather_info else ""
+        
+        # Build season leaderboard text if available - only include qualified players (10+ rounds)
         season_text = ""
+        qualified_leaders = []
         if season_leaderboard:
+            # Filter to only qualified players (10+ rounds)
+            for name, stats in season_leaderboard:
+                if stats['rounds_count'] >= 10:
+                    qualified_leaders.append((name, stats))
+            
             # Get current year from latest round date
             current_year = parse_date_flexible(latest_round['date']).year
-            season_text = f"\n\n{current_year} Season Standings (by average):\n"
-            for rank, (name, stats) in enumerate(season_leaderboard[:5], 1):  # Top 5
+            season_text = f"\n\n{current_year} Season Standings (QUALIFIED PLAYERS ONLY - 10+ rounds):\n"
+            for rank, (name, stats) in enumerate(qualified_leaders[:5], 1):  # Top 5 qualified
                 season_text += f"{rank}. {name}: {stats['avg_stableford']:.1f} avg, {stats['rounds_count']} rounds, {stats['total_points']} total pts\n"
+            
+            season_text += "\nNOTE: Players with fewer than 10 rounds are marked DNQ (Did Not Qualify) and should NOT be mentioned as 'leading' or 'top of' the standings.\n"
         
         # Check if both Fletcher and Andy are playing (father-son dynamic)
         # Check across all rounds from today
@@ -616,10 +662,8 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
             all_player_names.extend([p['name'] for p in round_data['players']])
         has_father_son = 'Fletcher Jakes' in all_player_names and 'Andy Jakes' in all_player_names
         
-        # Build relationship context only if relevant
-        relationship_text = ""
-        if has_father_son:
-            relationship_text = "\nIMPORTANT FACT - DO NOT GET THIS WRONG:\n- Fletcher Jakes is Andy Jakes' SON (Andy is the father, Fletcher is his son)\n- DO NOT call them brothers - they are father and son\n"
+        # Build relationship context - always include to avoid confusion
+        relationship_text = "\nIMPORTANT PLAYER RELATIONSHIPS - DO NOT GET THIS WRONG:\n- Fletcher Jakes is Andy Jakes' SON (Andy is the father, Fletcher is his son)\n- Bruce Kennaway is NOT related to Fletcher or Andy\n- DO NOT call Fletcher and Andy brothers - they are father and son\n"
         
         # Add form/prediction context if available - only for players who played today
         form_text = ""
@@ -642,12 +686,24 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
         unique_players_today = list(set(all_player_names))
         players_today_text = f"\n\nPLAYERS WHO PLAYED TODAY: {', '.join(unique_players_today)}\nONLY mention these players in your banter section.\n"
         
+        # Check if this is the final round of the season (late December)
+        round_date = parse_date_flexible(latest_round['date'])
+        is_season_finale = round_date.month == 12 and round_date.day >= 20
+        
+        # Add season champion context if this is the finale
+        champion_text = ""
+        if is_season_finale and qualified_leaders:
+            # Andy Jakes is the champion (first in qualified leaders)
+            champion_name = qualified_leaders[0][0]
+            champion_stats = qualified_leaders[0][1]
+            champion_text = f"\n\n🏆 SEASON FINALE - 2025 CHAMPION: {champion_name} wins the 2025 Warringah season title with {champion_stats['avg_stableford']:.1f} average points over {champion_stats['rounds_count']} rounds! Make sure to mention this achievement in your season summary.\n"
+        
         prompt = f"""Generate a golf round commentary with THREE distinct parts:
 
 1. WEATHER LINE (purely factual, no commentary): Simply state the weather conditions at Warringah Golf Club. Just the facts.
 2. PLAYER BANTER (humorous): 2-3 sentences of witty commentary about the players who PLAYED TODAY. Only mention players from the "PLAYERS WHO PLAYED TODAY" list. DO NOT mention any other players in the banter section. DO NOT mention weather, temperature, conditions, wind, rain, or anything weather-related in this section. Reference their recent form if relevant.
 3. SEASON SUMMARY (1 sentence): A brief, witty observation about the overall season leaderboard standings. You may mention any player in the season standings here. Include the AI prediction if provided.
-{relationship_text}{players_today_text}{holes_context}{form_text}{prediction_context}
+{relationship_text}{players_today_text}{champion_text}{holes_context}{form_text}{prediction_context}
 Today's Results:
 {chr(10).join(player_info)}{weather_text}{season_text}
 
@@ -810,8 +866,8 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         # Calculate handicap index from handicap-eligible rounds only
         calculated_index = calculate_player_handicap_index(
             player_stats[name]['rounds'],  # Only handicap-eligible rounds
-            config['slope'],
-            config['rating']
+            config['slope'],  # Keep using existing slope for stable index calculation
+            config['rating']  # Keep using existing rating for stable index calculation
         )
         player_stats[name]['calculated_index'] = calculated_index
         
@@ -819,14 +875,14 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         if len(player_stats[name]['rounds']) > 1:
             prev_index = calculate_player_handicap_index(
                 player_stats[name]['rounds'][:-1],
-                config['slope'],
-                config['rating']
+                config['slope'],  # Keep using existing slope for stable index calculation
+                config['rating']  # Keep using existing rating for stable index calculation
             )
             prev_ch = calculate_course_handicap(
                 prev_index,
-                config['slope'],
-                config.get('rating_display', config['rating']),
-                config['par']
+                BACK_9_CONFIG['slope_display'],
+                BACK_9_CONFIG['rating_display'],
+                BACK_9_CONFIG['par']
             )
             player_stats[name]['prev_index'] = prev_index
             player_stats[name]['prev_ch'] = prev_ch
@@ -834,12 +890,12 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             player_stats[name]['prev_index'] = calculated_index
             player_stats[name]['prev_ch'] = 0
         
-        # Calculate course handicap for the latest course config
+        # Calculate course handicap for Warringah Back 9 (always show this in leaderboard)
         ch = calculate_course_handicap(
             calculated_index,
-            config['slope'],
-            config.get('rating_display', config['rating']),
-            config['par']
+            BACK_9_CONFIG['slope_display'],
+            BACK_9_CONFIG['rating_display'],
+            BACK_9_CONFIG['par']
         )
         player_stats[name]['latest_ch'] = ch
     
@@ -920,8 +976,8 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             if not is_other_course and player['gross'] > 0:
                 ch = calculate_course_handicap(
                     player['index'],
-                    round_config['slope'],
-                    round_config.get('rating_display', round_config['rating']),
+                    round_config['slope_display'],
+                    round_config['rating_display'],
                     round_config['par']
                 )
                 message += f", {player['gross']} gross\n"
@@ -968,9 +1024,12 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         # Get trend indicator
         trend = form_guide.get(name, {}).get('trend', '')
         
+        # Check if player qualifies (minimum 10 rounds)
+        dnq_text = " DNQ" if stats['rounds_count'] < 10 else ""
+        
         display_name = get_display_name(name)
         message += f"{emoji} {rank}. {display_name} {trend}\n"
-        message += f"      • {stats['avg_stableford']:.2f} Points ({stats['rounds_count']} rounds)\n"
+        message += f"      • {stats['avg_stableford']:.2f} Points ({stats['rounds_count']} rounds{dnq_text})\n"
         message += f"      • HCP: {stats['calculated_index']:.1f}{index_arrow}\n"
         message += f"      • Warringah HCP: {stats['latest_ch']}{ch_arrow}\n"
         message += f"      • Stableford PB: {stats['best_stableford']} pts\n"
@@ -1424,6 +1483,16 @@ def lambda_handler(event, context):
                 try:
                     body = json.loads(event['body'])
                     print(f"Successfully parsed JSON body")
+                    
+                    # Handle iOS Shortcut format: {"JSON": "{\"action\": ...}"}
+                    if 'JSON' in body and isinstance(body['JSON'], str):
+                        print(f"Detected nested JSON string from iOS Shortcut")
+                        try:
+                            body = json.loads(body['JSON'])
+                            print(f"Successfully parsed nested JSON")
+                        except json.JSONDecodeError as e:
+                            print(f"Failed to parse nested JSON: {e}")
+                    
                 except json.JSONDecodeError as e:
                     print(f"JSON decode error: {e}")
                     body = event
@@ -1461,6 +1530,16 @@ def lambda_handler(event, context):
                     'statusCode': 400,
                     'body': json.dumps({'error': 'URL is required'})
                 }
+            
+            # Handle URL extraction from text (iOS Share Sheet may include description)
+            # Example: "I played 26 at Warringah...\nhttps://www.tagheuergolf.com/rounds/..."
+            if isinstance(url, str) and 'tagheuergolf.com' in url:
+                # Extract URL using regex
+                import re
+                url_match = re.search(r'https://www\.tagheuergolf\.com/rounds/[A-Za-z0-9-]+', url)
+                if url_match:
+                    url = url_match.group(0)
+                    print(f"Extracted URL from text: {url}")
             
             # Parse Tag Heuer URL (may return single round or list of rounds for 18 holes)
             round_data = parse_tag_heuer_url(url)

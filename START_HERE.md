@@ -1,6 +1,6 @@
 # 🏌️ Golf Handicap Tracker - Start Here
 
-**Last Updated**: December 23, 2025
+**Last Updated**: December 27, 2025
 
 ---
 
@@ -16,8 +16,8 @@ Read these in order when starting a session:
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1631 lines, full version with all features)  
-**❌ NEVER EDIT**: `lambda_function_aws.py` (old stripped version, ignore it)
+**✅ ALWAYS EDIT**: `lambda_function.py` (1644 lines, full version with all features)  
+**❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
 
@@ -45,11 +45,12 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 - **AWS Function**: `golf-handicap-tracker` in `ap-southeast-2`
 - **Runtime**: Python 3.13
-- **Database**: DynamoDB table `golf-rounds` (49 rounds as of Dec 23, 2025)
-  - 47 Warringah rounds (handicap eligible)
+- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 27, 2025)
+  - 48 Warringah rounds (handicap eligible)
   - 2 Monavale rounds (stableford only, not handicap eligible)
 - **Auth Token**: `HnB9_VsxLXQVVQqNXi2ilSyY0hPQDJ9EcEt-mVoGej0`
 - **OpenAI Key**: Already configured in Lambda environment ✅
+- **iOS Shortcut**: "Post Golf Round" - Share Tag Heuer scorecard to auto-submit rounds
 
 ---
 
@@ -59,17 +60,21 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 ```python
 BACK_9_CONFIG = {
-    'par': 36,                 # Back 9 par
-    'slope': 114,              # Back 9 slope
-    'rating': 33.5,            # For index calculation
-    'rating_display': 35.5,    # For course handicap display
+    'name': 'Back 9 (Holes 10-18)',
+    'par': 35,
+    'slope': 101,              # For index calculation (keeps existing handicaps stable)
+    'rating': 33.5,            # For index calculation (keeps existing handicaps stable)
+    'slope_display': 111,      # Warringah Whites official - for course handicap display only
+    'rating_display': 33.0,    # Warringah Whites official - for course handicap display only
 }
 
 FRONT_9_CONFIG = {
-    'par': 35,                 # Front 9 par
-    'slope': 110,              # Front 9 slope
-    'rating': 32.5,            # For index calculation
-    'rating_display': 34.5,    # For course handicap display
+    'name': 'Front 9 (Holes 1-9)',
+    'par': 35,
+    'slope': 101,              # For index calculation (keeps existing handicaps stable)
+    'rating': 33.5,            # For index calculation (keeps existing handicaps stable)
+    'slope_display': 127,      # Warringah Whites official - for course handicap display only
+    'rating_display': 35.0,    # Warringah Whites official - for course handicap display only
 }
 ```
 
@@ -92,8 +97,8 @@ The system now supports rounds from other courses (e.g., Monavale):
   - Each player listed with points and gross score
 - 📊 **SEASON LEADERBOARD** - Year stats with trend indicators (📈📉➡️) and bullet points
   - Includes average gross score for each player
+  - **DNQ indicator** for players with less than 10 rounds (need 10 to qualify)
 - 🏅 **MONTHLY TOURNAMENT** - Current month only
-- 📆 **BEST/WORST MONTHS** - Peak/worst performing months per player
 - 📈 **PERFORMANCE TRENDS** - Continuous line graphs showing year-long form
   - Spark line visualization for each player (Jan-Dec)
   - Carries forward last value when no rounds played (smooth trend)
@@ -102,7 +107,7 @@ The system now supports rounds from other courses (e.g., Monavale):
 - 🎮 **FUN STATS** - Head-to-head, hot hand, clutch factor (W-L format), predictions, rotating badges
 - 🎭 **AI COMMENTARY** - Weather-aware banter
   - Only mentions players who actually played that day
-  - Separate weather line (factual only)
+  - Separate weather line (factual only) with **weather emojis** (☀️🌧️⛅☁️⛈️🍃💨)
   - Accurate about Front 9 vs Back 9 scores
 
 ### Labels & Formatting
@@ -156,13 +161,30 @@ The system now supports rounds from other courses (e.g., Monavale):
 
 ### Father-Son Relationship Wrong
 **Cause**: AI hallucinating relationships without clear instruction  
-**Solution**: Explicit prompt: "Fletcher is Andy's SON (not brother)"
+**Solution**: Always include in prompt: "Fletcher Jakes is Andy Jakes' SON (Andy is the father, Fletcher is his son). Bruce Kennaway is NOT related to Fletcher or Andy."
+
+### DNQ Players Mentioned as Leading
+**Cause**: AI mentioning players with less than 10 rounds in season standings discussion  
+**Solution**: Filter season leaderboard to only include qualified players (10+ rounds) before sending to AI
+
+### Season Finale Not Mentioned
+**Cause**: AI not aware when it's the last game of the season  
+**Solution**: Auto-detect games after Dec 20 and add champion announcement to AI prompt
+
+### iOS Shortcut Issues
+**Cause**: iOS Shortcuts variable passing and JSON formatting issues  
+**Solution**: 
+- Use Text action: `{"action": "add_round", "url": "[Shortcut Input]"}`
+- Ensure URL is quoted in JSON string
+- Lambda parses nested `{"JSON": "..."}` format from iOS Shortcuts
+- Lambda extracts URL from Share Sheet text format automatically
 
 ---
 
 ## ✅ System Status
 
-**All Systems Operational** as of Dec 23, 2025:
+**All Systems Operational** as of Dec 27, 2025:
+- ✅ iOS Shortcut "Post Golf Round" working (Share Sheet integration)
 - ✅ Round submission working (front 9, back 9, or 18 holes)
 - ✅ Scorecard parsing (18-hole cards auto-split into 2 rounds)
 - ✅ Handicap calculations (WHS compliant, both nines for 18-hole rounds)
@@ -170,12 +192,15 @@ The system now supports rounds from other courses (e.g., Monavale):
 - ✅ Change tracking (week-over-week)
 - ✅ Performance trends (continuous line graphs with trend summaries)
 - ✅ AI commentary with weather (only mentions players who played)
+- ✅ Father-son relationships correct (Fletcher is Andy's son, not Bruce's)
+- ✅ DNQ players (less than 10 rounds) not mentioned as "leading"
+- ✅ Season finale detection (Dec 20+) announces champion
 - ✅ WhatsApp-formatted summaries with bullet points
 - ✅ Fun features (rivalries, badges, predictions, clutch factor)
 - ✅ Monthly tournament and best/worst months
 - ✅ Consistent labeling throughout
 - ✅ Historical summary support
-- ✅ 49 rounds in database (47 Warringah + 2 Monavale)
+- ✅ 50 rounds in database (48 Warringah + 2 Monavale)
 - ✅ Version control (GitHub: xkennawb/golf-handicap-calculator, private repo)
 
 ---
