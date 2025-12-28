@@ -1012,7 +1012,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
                     round_config['par']
                 )
                 message += f", {player['gross']} gross\n"
-                message += f"      • HCP: {player['index']}\n"
+                message += f"      • WHS Australia: {player['index']}\n"
                 message += f"      • Warringah HCP: {ch}\n\n"
             else:
                 message += "\n\n"
@@ -1062,7 +1062,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         message += f"{emoji} {rank}. {display_name} {trend}\n"
         message += f"      • {stats['avg_stableford']:.2f} Points\n"
         message += f"      • {stats['rounds_count']} rounds{dnq_text}\n"
-        message += f"      • HCP: {stats['calculated_index']:.1f}{index_arrow}\n"
+        message += f"      • WHS Australia: {stats['calculated_index']:.1f}{index_arrow}\n"
         message += f"      • Warringah HCP: {stats['latest_ch']}{ch_arrow}\n"
         message += f"      • Stableford PB: {stats['best_stableford']} pts\n"
         message += f"      • Gross PB: {stats['best_gross']}\n"

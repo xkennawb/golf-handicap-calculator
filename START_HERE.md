@@ -114,7 +114,7 @@ The system now supports rounds from other courses (e.g., Monavale):
   - Accurate about Front 9 vs Back 9 scores
 
 ### Labels & Formatting
-- "HCP:" and "Warringah HCP:" (not "Index:" or "Warringah:")
+- "WHS Australia:" and "Warringah HCP:" (not "HCP:" or "Index:")
 - "Points" for averages (not "avg" or "avg stableford")
 - Bullet points (•) for all stats under player names
 - Separate lines for HCP and Warringah HCP in TODAY'S RESULTS
