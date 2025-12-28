@@ -54,46 +54,22 @@ python upload_lambda.py
 
 **Important**: Build script uses `--platform manylinux2014_x86_64` to get Linux-compatible binaries for AWS Lambda.
 
-### Manual Build
+### Configure Environment Variables
 
-```bash
-pip install -r requirements.txt
-```
+**OpenAI API Key**: Set `OPENAI_API_KEY` in AWS Lambda environment variables for AI commentary.
 
-### 2. Configure API Keys
+**Weather**: Uses Open-Meteo API (free, no key required).
 
-Create a `config.json` file:
+**Auth Token**: Set `AUTH_TOKEN` in Lambda environment variables for securing the endpoint.
 
-```json
-{
-  "weather_api_key": "your_openweathermap_api_key",
-  "s3_bucket": "your-s3-bucket-name"
-}
-```
+### Setup iOS Shortcut
 
-Get a free API key from: https://openweathermap.org/api
-
-### 3. Deploy to AWS Lambda
-
-```bash
-# Package dependencies
-pip install -r requirements.txt -t package/
-cp *.py package/
-cd package
-zip -r ../lambda_function.zip .
-cd ..
-
-# Upload to AWS Lambda via AWS Console or CLI
-```
-
-### 4. Setup iOS Shortcut
-
-See `ios-shortcut-instructions.md` for detailed setup.
+See [IOS_SHORTCUT_POST_ROUND.md](IOS_SHORTCUT_POST_ROUND.md) for detailed setup.
 
 ## Local Testing
 
-```bash
-python test_local.py
+```powershell
+chcp 65001 >$null; python display_summary.py
 ```
 
 ## Usage
@@ -107,13 +83,13 @@ python test_local.py
 
 ## Files
 
-- `scraper.py` - Tag Heuer scorecard scraper
-- `weather.py` - Weather API integration
+- `lambda_function.py` - AWS Lambda entry point (1658 lines, includes all features)
 - `handicap.py` - Australian WHS handicap calculator with Stableford
-- `excel_handler.py` - Excel spreadsheet management with year stats
-- `stats_reporter.py` - Statistics and leaderboard generator
-- `lambda_function.py` - AWS Lambda entry point
-- `test_local.py` - Local testing script
+- `weather.py` - Open-Meteo weather API integration
+- `excel_handler.py` - Excel spreadsheet management (legacy)
+- `stats_reporter.py` - Statistics and leaderboard generator (legacy)
+- `build_lambda_package.ps1` - Build script for Lambda deployment
+- `upload_lambda.py` - Upload script for AWS Lambda
 
 ## License
 
