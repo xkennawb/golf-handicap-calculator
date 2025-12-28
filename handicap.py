@@ -111,12 +111,18 @@ class HandicapCalculator:
         playing_handicap = handicap_index * (slope_rating / 113) * (holes / 18)
         return round(playing_handicap)
     
-    def update_handicap_index(self, current_index, score_differentials, weather_factors=None):
+    def update_handicap_index(self, current_index, score_differentials, weather_factors=None, low_handicap_index=None):
         """
         Update handicap index based on recent score differentials
         Uses best 8 of last 20 scores (simplified WHS)
         
         For 9-hole rounds, two 9-hole differentials combine to one 18-hole differential
+        
+        Args:
+            current_index: Current handicap index
+            score_differentials: List of score differentials
+            weather_factors: Optional weather adjustment factors
+            low_handicap_index: Lowest index in last 365 days (for hard/soft cap)
         """
         if not score_differentials:
             return current_index
@@ -156,7 +162,40 @@ class HandicapCalculator:
         # Apply adjustment (96% of average per WHS)
         new_index = new_index * 0.96
         
+        # Apply WHS Hard Cap and Soft Cap
+        if low_handicap_index is not None:
+            new_index = self.apply_handicap_caps(new_index, low_handicap_index)
+        
         return round(new_index, 1)
+    
+    def apply_handicap_caps(self, new_index, low_handicap_index):
+        """
+        Apply WHS hard cap and soft cap to prevent excessive handicap increases.
+        
+        Soft Cap: If increase > 3.0, reduce excess by 50%
+        Hard Cap: Maximum increase of 5.0 from Low Handicap Index
+        
+        Args:
+            new_index: Newly calculated handicap index
+            low_handicap_index: Lowest index achieved in last 365 days
+            
+        Returns:
+            Capped handicap index
+        """
+        increase = new_index - low_handicap_index
+        
+        # Only apply caps to increases (not decreases)
+        if increase <= 3.0:
+            return new_index
+        
+        # Soft cap: reduce amount over 3.0 by 50%
+        if increase <= 5.0:
+            excess = increase - 3.0
+            capped_increase = 3.0 + (excess * 0.5)
+            return low_handicap_index + capped_increase
+        
+        # Hard cap: maximum increase of 5.0
+        return low_handicap_index + 5.0
     
     def calculate_stableford_points(self, score, par, playing_handicap_for_hole):
         """

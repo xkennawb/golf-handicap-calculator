@@ -189,6 +189,7 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
     """
     Calculate WHS handicap index for a player using their rounds
     Weather-based PCC only applied to rounds after 2025-12-14
+    Applies hard/soft cap based on Low Handicap Index from last 365 days
     """
     hc_calc = HandicapCalculator()
     
@@ -197,6 +198,8 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
     
     # Calculate differentials for all rounds
     differentials = []
+    round_indices = []  # Track index after each round for LHI calculation
+    
     for round_data in rounds_list:
         # Calculate as 18-hole equivalent
         gross_18 = round_data['gross'] * 2
@@ -214,8 +217,25 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
         
         differentials.append(round(differential, 1))
     
-    # Calculate index using WHS method
-    calculated_index = hc_calc.update_handicap_index(0, differentials)
+    # Calculate Low Handicap Index from last 365 days
+    from datetime import datetime, timedelta
+    cutoff_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    
+    # Get indices from rounds in last 365 days
+    low_handicap_index = None
+    recent_indices = []
+    
+    for i, round_data in enumerate(rounds_list):
+        if round_data.get('date', '') >= cutoff_date:
+            # Calculate index up to this point
+            temp_index = hc_calc.update_handicap_index(0, differentials[:i+1])
+            recent_indices.append(temp_index)
+    
+    if recent_indices:
+        low_handicap_index = min(recent_indices)
+    
+    # Calculate final index using WHS method with hard/soft cap
+    calculated_index = hc_calc.update_handicap_index(0, differentials, low_handicap_index=low_handicap_index)
     return calculated_index
 
 def parse_tag_heuer_url(url):

@@ -16,7 +16,7 @@ Read these in order when starting a session:
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1658 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `lambda_function.py` (1678 lines, full version with all features)  
 **❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
@@ -186,11 +186,13 @@ The system now supports rounds from other courses (e.g., Monavale):
 
 ## ✅ System Status
 
-**All Systems Operational** as of Dec 27, 2025:
+**All Systems Operational** as of Dec 28, 2025:
 - ✅ iOS Shortcut "Post Golf Round" working (Share Sheet integration)
 - ✅ Round submission working (front 9, back 9, or 18 holes)
 - ✅ Scorecard parsing (18-hole cards auto-split into 2 rounds)
-- ✅ Handicap calculations (WHS compliant, both nines for 18-hole rounds)
+- ✅ Handicap calculations (WHS Australia compliant with hard/soft cap protection)
+- ✅ Hard/Soft Cap: Prevents excessive handicap increases (WHS standard)
+- ✅ Low Handicap Index tracking (365-day rolling window)
 - ✅ Multi-course support (Monavale rounds tracked separately)
 - ✅ Change tracking (week-over-week)
 - ✅ Performance trends (continuous line graphs with trend summaries)
