@@ -18,7 +18,7 @@ Automated golf handicap tracking system using World Handicap System (WHS).
 - 🏌️ Scrapes Tag Heuer Golf scorecards from URL
 - 🌤️ Fetches weather data for course location and date (Open-Meteo API, free)
 - 🤖 AI-powered commentary with OpenAI (witty banter about each round)
-- 📊 Calculates 9-hole handicaps per WHS (World Handicap System)
+- 📊 Calculates 9-hole handicaps per WHS Australia (World Handicap System)
 - 🎯 Tracks Stableford and Gross scores for each round
 - 📈 Season statistics for each player:
   - Average Stableford score
