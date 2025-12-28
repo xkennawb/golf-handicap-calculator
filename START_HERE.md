@@ -1,6 +1,6 @@
 # 🏌️ Golf Handicap Tracker - Start Here
 
-**Last Updated**: December 27, 2025
+**Last Updated**: December 28, 2025
 
 ---
 
@@ -16,7 +16,7 @@ Read these in order when starting a session:
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1644 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `lambda_function.py` (1658 lines, full version with all features)  
 **❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
@@ -45,7 +45,7 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 - **AWS Function**: `golf-handicap-tracker` in `ap-southeast-2`
 - **Runtime**: Python 3.13
-- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 27, 2025)
+- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 28, 2025)
   - 48 Warringah rounds (handicap eligible)
   - 2 Monavale rounds (stableford only, not handicap eligible)
 - **Auth Token**: `HnB9_VsxLXQVVQqNXi2ilSyY0hPQDJ9EcEt-mVoGej0`
@@ -93,12 +93,15 @@ The system now supports rounds from other courses (e.g., Monavale):
 ### Core Sections
 - 📅 **TODAY'S RESULTS** - Latest round(s) with bullet points
   - Shows course name (Warringah or other courses)
-  - If 18 holes played: Shows both "Front 9:" and "Back 9:" sections
+  - If 18 holes played: Shows both "FRONT 9 🚩" and "BACK 9 ⛳" sections (uppercase with flag emojis)
   - Each player listed with points and gross score
+  - 🔗 **Scorecard URL link** displayed after date header (if available from Tag Heuer)
 - 📊 **SEASON LEADERBOARD** - Year stats with trend indicators (📈📉➡️) and bullet points
   - Includes average gross score for each player
-  - **DNQ indicator** for players with less than 10 rounds (need 10 to qualify)
-- 🏅 **MONTHLY TOURNAMENT** - Current month only
+  - **DNQ indicator** for players with less than 10 rounds: "(⚠️ DNQ)" (need 10 to qualify)
+  - **Only shows active players** (those who have played at least 1 round in current season)
+- 🏅 **MONTHLY TOURNAMENT** - Current month only with bullet points
+  - Separate bullet points for average points and number of rounds
 - 📈 **PERFORMANCE TRENDS** - Continuous line graphs showing year-long form
   - Spark line visualization for each player (Jan-Dec)
   - Carries forward last value when no rounds played (smooth trend)

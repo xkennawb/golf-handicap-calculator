@@ -221,7 +221,7 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
 def parse_tag_heuer_url(url):
     """
     Fetch and parse Tag Heuer Golf round data
-    Returns: dict with date, course, players
+    Returns: dict with date, course, players, url
     """
     try:
         response = requests.get(url, timeout=10)
@@ -453,14 +453,16 @@ def parse_tag_heuer_url(url):
                     'date': date_str,
                     'time_utc': tee_time_utc,
                     'course': 'front9',
-                    'players': front9_players
+                    'players': front9_players,
+                    'scorecard_url': url
                 })
             if back9_players:
                 rounds.append({
                     'date': date_str,
                     'time_utc': tee_time_utc,
                     'course': 'back9',
-                    'players': back9_players
+                    'players': back9_players,
+                    'scorecard_url': url
                 })
             
             return rounds  # Return list of rounds
@@ -468,10 +470,11 @@ def parse_tag_heuer_url(url):
         # Single 9-hole round
         return {
             'date': date_str,
-                'time_utc': tee_time_utc,
-                'course': course,
-                'players': players
-            }
+            'time_utc': tee_time_utc,
+            'course': course,
+            'players': players,
+            'scorecard_url': url
+        }
     
     except Exception as e:
         return {
@@ -921,11 +924,19 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             player_stats[name]['avg_gross'] = 0
             player_stats[name]['rounds_count'] = 0
     
+    # Filter to only include players with at least 1 round in current season
+    active_players = {name: stats for name, stats in player_stats.items() if stats['rounds_count'] > 0}
+    
     # Sort by average
-    sorted_players = sorted(player_stats.items(), key=lambda x: x[1]['avg_stableford'], reverse=True)
+    sorted_players = sorted(active_players.items(), key=lambda x: x[1]['avg_stableford'], reverse=True)
     
     # Build WhatsApp message with bold headers and multi-line formatting
     message = f"*📅 {latest_date_str}*\n\n"
+    
+    # Add scorecard URL if available
+    scorecard_url = latest_round.get('scorecard_url')
+    if scorecard_url:
+        message += f"🔗 View Scorecard: {scorecard_url}\n\n"
     
     # Display name mapping
     def get_display_name(name):
@@ -954,9 +965,9 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             # Determine if front or back 9 from course field or date suffix
             is_back9 = round_data['course'] == 'back9' or '-back9' in round_data['date']
             if is_back9:
-                message += "*Back 9:*\n"
+                message += "*BACK 9* ⛳\n\n"
             else:
-                message += "*Front 9:*\n"
+                message += "*FRONT 9* 🚩\n\n"
         
         # Get config for this specific round
         if round_data['course'] == 'back9':
@@ -1025,11 +1036,12 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         trend = form_guide.get(name, {}).get('trend', '')
         
         # Check if player qualifies (minimum 10 rounds)
-        dnq_text = " DNQ" if stats['rounds_count'] < 10 else ""
+        dnq_text = " (⚠️ DNQ)" if stats['rounds_count'] < 10 else ""
         
         display_name = get_display_name(name)
         message += f"{emoji} {rank}. {display_name} {trend}\n"
-        message += f"      • {stats['avg_stableford']:.2f} Points ({stats['rounds_count']} rounds{dnq_text})\n"
+        message += f"      • {stats['avg_stableford']:.2f} Points\n"
+        message += f"      • {stats['rounds_count']} rounds{dnq_text}\n"
         message += f"      • HCP: {stats['calculated_index']:.1f}{index_arrow}\n"
         message += f"      • Warringah HCP: {stats['latest_ch']}{ch_arrow}\n"
         message += f"      • Stableford PB: {stats['best_stableford']} pts\n"
@@ -1081,7 +1093,9 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         for rank, (name, avg, rounds) in enumerate(monthly_leaderboard, 1):
             emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
             display_name = get_display_name(name)
-            message += f"{emoji} {rank}. {display_name}: {avg:.2f} points ({rounds} round{'s' if rounds != 1 else ''})\n"
+            message += f"{emoji} {rank}. {display_name}\n"
+            message += f"      • {avg:.2f} points\n"
+            message += f"      • {rounds} round{'s' if rounds != 1 else ''}\n"
         
         message += "\n"
     
