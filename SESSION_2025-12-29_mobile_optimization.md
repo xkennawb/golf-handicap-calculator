@@ -14,21 +14,39 @@
 5. ✅ Add trend emojis to leaderboards (📈📉➡️)
 6. ✅ Shorten section headers for mobile (DECEMBER BOARD, 2025 LEADERBOARD)
 7. ✅ Integrate handicap changes into AI commentary
-8. ✅ Update all documentation to reflect current format
+8. ✅ Add course name and weather to header
+9. ✅ Condense date format for mobile (abbreviated)
+10. ✅ Add season emojis to monthly board
+11. ✅ Optimize PBs format (stb/gs abbreviations)
+12. ✅ Update all documentation to reflect current format
 
 ---
 
 ## 📱 WhatsApp Summary Structure (Final)
 
 ### Section Order
-1. 📅 Date & Scorecard Link
+1. 📅 Date, Course & Weather
 2. 🏆 TODAY'S RESULTS
-3. 🏅 DECEMBER BOARD (monthly)
+3. ☀️ DECEMBER BOARD (monthly with season emoji)
 4. 📊 2025 LEADERBOARD (season)
 5. 📋 PLAYER STATS
 6. 🎭 AI COMMENTARY
 
 ### Key Design Decisions
+
+**Header Section** (NEW):
+- Condensed date: "SAT, DEC 27, 2025" (fits on one line)
+- Course name: 🏌️ Warringah Golf Club
+- Weather with emojis: 🌧️ 🍃 15°C, drizzle, 17km/h winds
+- Scorecard URL on separate line
+
+**Season Emojis** (NEW):
+- Monthly board now uses season emoji instead of medal
+- ☀️ Summer (Dec, Jan, Feb)
+- 🍂 Autumn (Mar, Apr, May)
+- ❄️ Winter (Jun, Jul, Aug)
+- 🌸 Spring (Sep, Oct, Nov)
+- Automatically changes based on current month
 
 **Removed Sections**:
 - ❌ Performance Trends - Redundant with trend emojis, took too much space
@@ -36,6 +54,7 @@
 
 **Spacing**:
 - Single `\n` between all sections
+- Line feed after date before course name
 - No double spacing anywhere
 - Tighter, more mobile-friendly layout
 
@@ -55,7 +74,7 @@ FLETCHER JAKES
 ─────────────────────────
 🎯 8 rounds ⚠️ DNQ
 📊 WHS 14.0 (-0.7) | War HCP 12
-🏆 PBs: 20 stab | 38 gross
+🏆 PBs: 20 stb | 38 gs
 📈 Avg: 42.8
 ```
 - Uppercase names for emphasis
@@ -63,6 +82,7 @@ FLETCHER JAKES
 - Emoji bullets (🎯📊🏆📈) for scannability
 - DNQ appears on rounds line (not name line)
 - Handicap changes shown with arrows and values
+- PBs format: "stb" for stableford, "gs" for gross (more compact)
 
 **Trend Emojis**:
 - Added to both DECEMBER BOARD and 2025 LEADERBOARD
@@ -197,20 +217,28 @@ Updated files:
 ## 🔧 Technical Details
 
 ### File Modified
-- `lambda_function.py` (1575 lines)
+- `lambda_function.py` (1620 lines after all changes)
 
-### Key Line Numbers
+### Key Line Numbers (Approximate - may shift with edits)
+- Lines 31-60: `shorten_url()` function (added then deprecated - not called)
 - Line 555: `generate_ai_commentary()` function signature
+- Lines 628-632: Weather fetching restored for AI context
 - Lines 708-709: Handicap context in AI prompt
 - Line 730: AI instruction update
-- Line 1067: DECEMBER BOARD header
-- Line 1116: 2025 LEADERBOARD header
-- Lines 1130-1152: Player stats formatting (Option 1)
-- Lines 1276-1288: Handicap change detection
-- Line 1303: Function call with handicap_changes
+- Line 793: Condensed date format (`%a, %b %d, %Y`)
+- Lines 926-959: Header section (date, course, weather display)
+- Line 995: Scorecard URL (original Tag Heuer URL, not shortened)
+- Lines 1083-1096: Season emoji function and monthly board header
+- Line 1133: Season leaderboard header (2025 LEADERBOARD)
+- Lines 1200-1208: Player stats formatting with "stb" and "gs"
+- Lines 1293-1305: Handicap change detection
+- Line 1320: Function call with handicap_changes
 
-### Configuration (Unchanged)
+### Configuration
 - All underlines: 25 characters, thin dash (─)
+- Date format: Abbreviated (`%a, %b %d, %Y`)
+- Season emojis: Month-based (12-2: ☀️, 3-5: 🍂, 6-8: ❄️, 9-11: 🌸)
+- PBs format: "stb" for stableford, "gs" for gross
 - DNQ threshold: 10 rounds
 - DNQ season check: month > 6
 - Handicap change threshold: abs(change) > 0.05
@@ -235,6 +263,9 @@ Updated files:
 - No horizontal scrolling required
 - Clear visual hierarchy
 - Easy to read on small screens
+- Date fits on one line (condensed format)
+- Course and weather clearly visible at top
+- Season emojis add visual interest
 
 ---
 
@@ -245,19 +276,32 @@ Updated files:
 python upload_lambda.py
 ```
 
-**Deployed**: 2025-12-29T07:22:17 UTC  
+**Final Deployment**: 2025-12-29T09:11:38 UTC  
 **Function**: golf-handicap-tracker  
 **Region**: ap-southeast-2  
 **Runtime**: Python 3.13
 
+### Deployment History (Today)
+1. 07:22:17 - Initial mobile optimization (headers, spacing, handicap changes)
+2. 08:15:48 - Added course name and weather to header, season emojis
+3. 08:19:24 - Condensed date format to fit on one line
+4. 08:21:55 - Added line feed after date
+5. 08:25:18 - Fixed AI commentary (weather_info variable)
+6. 08:54:13 - Added TinyURL shortening
+7. 09:08:58 - Reverted to original Tag Heuer URL
+8. 09:11:38 - Updated PBs format (stb/gs)
+
 ---
 
-## 📱 Example Output
+## 📱 Example Output (Current Format)
 
 ```
-*📅 SATURDAY, DECEMBER 27, 2025*
+*📅 SAT, DEC 27, 2025*
 
-🔗 Scorecard: https://www.tagheuergolf.com/rounds/...
+🏌️ Warringah Golf Club
+🌧️ 🍃 15°C, drizzle, 17km/h winds, 0.8mm rain
+
+🔗 Scorecard: https://www.tagheuergolf.com/rounds/B5288123-BD7F-4ABB-849B-EBEEFA41A562
 
 *🏆 TODAY'S RESULTS:*
 
@@ -270,7 +314,7 @@ Rk Player      Pts Gross
 🥉 3 Bruce       12  47
 ```
 
-*🏅 DECEMBER BOARD:*
+*☀️ DECEMBER BOARD:*
 ```
 Rk Player       Avg
 ─────────────────────────
@@ -298,13 +342,13 @@ FLETCHER JAKES
 ─────────────────────────
 🎯 8 rounds ⚠️ DNQ
 📊 WHS 14.0 (-0.7) | War HCP 12
-🏆 PBs: 20 stab | 38 gross
+🏆 PBs: 20 stb | 38 gs
 📈 Avg: 42.8
 ```
 
 *🎭 AI COMMENTARY:*
 ```
-Weather: 15°C, drizzle, 17km/h winds.
+Weather: 15°C, drizzle, 17km/h winds, 0.8mm rain.
 
 Andy Jakes is on fire with a blistering 18 points on the back nine; 
 he's making it look like a walk in the park while Bruce Kennaway, with 
@@ -329,16 +373,21 @@ as the rest of the competitors scramble to catch up!
 4. **AI Context**: Explicit instructions work better than hoping AI will infer importance
 5. **Visual Hierarchy**: Uppercase names + emoji bullets created clear player stat sections
 6. **Meaningful Metrics**: Handicap changes are important enough to warrant AI mention
+7. **Header Context**: Course name and weather at top provides immediate context
+8. **Abbreviations**: "stb" and "gs" keep PBs concise without losing clarity
+9. **Season Emojis**: Visual indicators add personality without adding text
+10. **Date Format**: Abbreviated format prevents line wrapping on mobile
 
 ---
 
 ## 🔮 Future Considerations
 
 - Monitor if users want any removed features back
-- Consider adding handicap change threshold as configurable
+- Consider implementing DIY URL shortener with custom domain (vs TinyURL)
 - Could expand AI to mention multiple players' handicap changes
 - May want to adjust DNQ seasonal logic based on feedback
-- Consider A/B testing different player stat formats with users
+- Consider weather emoji variety based on more conditions
+- Potential to add more contextual info to header section
 
 ---
 
@@ -347,6 +396,8 @@ as the rest of the competitors scramble to catch up!
 If issues arise:
 1. Check CloudWatch logs for AI API errors
 2. Verify handicap_changes_text is being populated correctly
-3. Ensure prev_index calculations are working (lines 902-913)
+3. Ensure prev_index calculations are working
 4. Test with rounds that trigger > 0.05 handicap changes
 5. Verify all underlines are 25 chars (search for "─" character)
+6. Check weather API if conditions not displaying
+7. Verify season emoji logic for correct month mapping

@@ -29,6 +29,36 @@ except Exception as e:
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('golf-rounds')
 
+# URL shortening cache
+url_shortener_cache = {}
+
+def shorten_url(long_url):
+    """
+    Shorten a URL using TinyURL API
+    Returns shortened URL or original URL if shortening fails
+    """
+    # Check cache first
+    if long_url in url_shortener_cache:
+        return url_shortener_cache[long_url]
+    
+    try:
+        # TinyURL API - simple and free, no authentication needed
+        api_url = f"https://tinyurl.com/api-create.php?url={long_url}"
+        response = requests.get(api_url, timeout=3)
+        
+        if response.status_code == 200:
+            short_url = response.text.strip()
+            # Cache the result
+            url_shortener_cache[long_url] = short_url
+            print(f"URL shortened: {long_url} -> {short_url}")
+            return short_url
+        else:
+            print(f"TinyURL API returned status {response.status_code}")
+            return long_url
+    except Exception as e:
+        print(f"URL shortening failed: {e}")
+        return long_url
+
 # Simple in-memory cache for commentary (Lambda container reuse)
 commentary_cache = {}
 
@@ -626,40 +656,11 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
             for p in todays_rounds[0]['players']:
                 player_info.append(f"{p['name']}: {p['stableford']} points on {nine_label}, {p['gross']} gross on {nine_label}")
         
-        # Get weather if available (with tee time if present)
+        # Get weather for AI prompt
+        latest_round = todays_rounds[-1]  # Get the latest round
         tee_time = latest_round.get('time_utc')
-        print(f"DEBUG: Round date={latest_round['date']}, tee_time_utc={tee_time}")
         weather_info = get_weather_for_round(latest_round['date'], tee_time)
-        print(f"DEBUG: Weather fetched: {weather_info}")
-        
-        # Add weather emoji based on conditions
-        weather_emoji = ""
-        if weather_info:
-            weather_lower = weather_info.lower()
-            # Check sky conditions first
-            if 'rain' in weather_lower or 'shower' in weather_lower:
-                weather_emoji = "🌧️"
-            elif 'storm' in weather_lower or 'thunder' in weather_lower:
-                weather_emoji = "⛈️"
-            elif 'partly cloudy' in weather_lower or 'partly cloud' in weather_lower:
-                weather_emoji = "⛅"
-            elif 'cloud' in weather_lower or 'overcast' in weather_lower:
-                weather_emoji = "☁️"
-            elif 'clear' in weather_lower or 'sunny' in weather_lower or 'sun' in weather_lower:
-                weather_emoji = "☀️"
-            else:
-                # Default sunny emoji if no sky condition detected
-                weather_emoji = "☀️"
-            
-            # Add wind emoji if mentioned
-            if 'strong wind' in weather_lower or 'gust' in weather_lower or 'windy' in weather_lower:
-                weather_emoji += " 💨"
-            elif 'wind' in weather_lower or 'breeze' in weather_lower:
-                weather_emoji += " 🍃"
-            
-            weather_emoji += " "  # Add space after emoji
-        
-        weather_text = f"\nWeather: {weather_emoji}{weather_info}" if weather_info else ""
+        weather_text = f"\nWeather: {weather_info}" if weather_info else ""
         
         # Build season leaderboard text if available - only include qualified players (10+ rounds)
         season_text = ""
@@ -821,7 +822,8 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     latest_date_obj = parse_date_flexible(latest_round['date'])
     # Add 1 day for timezone
     latest_date_obj = latest_date_obj + timedelta(days=1)
-    latest_date_str = latest_date_obj.strftime('%A, %B %d, %Y').upper()
+    # Use abbreviated format to fit on one line on mobile
+    latest_date_str = latest_date_obj.strftime('%a, %b %d, %Y').upper()
     
     # Find all rounds from the latest date (front 9 and back 9 on same day)
     latest_date_base = latest_round['date'].split('-back9')[0]  # Remove suffix if present
@@ -956,10 +958,43 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     # Build WhatsApp message with bold headers and multi-line formatting
     message = f"*📅 {latest_date_str}*\n\n"
     
+    # Add course name and weather under date
+    course_name = latest_round.get('course_display_name', 'Warringah Golf Club')
+    message += f"🏌️ {course_name}\n"
+    
+    # Get weather info for display at top
+    tee_time = latest_round.get('time_utc')
+    weather_info = get_weather_for_round(latest_round['date'], tee_time)
+    if weather_info:
+        # Add weather emoji
+        weather_lower = weather_info.lower()
+        weather_emoji = ""
+        if 'rain' in weather_lower or 'shower' in weather_lower:
+            weather_emoji = "🌧️"
+        elif 'storm' in weather_lower or 'thunder' in weather_lower:
+            weather_emoji = "⛈️"
+        elif 'partly cloudy' in weather_lower or 'partly cloud' in weather_lower:
+            weather_emoji = "⛅"
+        elif 'cloud' in weather_lower or 'overcast' in weather_lower:
+            weather_emoji = "☁️"
+        elif 'clear' in weather_lower or 'sunny' in weather_lower or 'sun' in weather_lower:
+            weather_emoji = "☀️"
+        else:
+            weather_emoji = "☀️"
+        
+        if 'strong wind' in weather_lower or 'gust' in weather_lower or 'windy' in weather_lower:
+            weather_emoji += " 💨"
+        elif 'wind' in weather_lower or 'breeze' in weather_lower:
+            weather_emoji += " 🍃"
+        
+        message += f"{weather_emoji} {weather_info}\n\n"
+    else:
+        message += "\n"
+    
     # Add scorecard URL if available
     scorecard_url = latest_round.get('scorecard_url')
     if scorecard_url:
-        message += f"🔗 Scorecard:\n{scorecard_url}\n\n"
+        message += f"🔗 Scorecard: {scorecard_url}\n\n"
     
     # Display name mapping
     def get_display_name(name):
@@ -1037,6 +1072,19 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     current_month = latest_date_obj.month
     current_month_name = latest_date_obj.strftime('%B')
     
+    # Get season emoji based on month (Southern Hemisphere)
+    def get_season_emoji(month):
+        if month in [12, 1, 2]:  # Summer
+            return "☀️"
+        elif month in [3, 4, 5]:  # Autumn
+            return "🍂"
+        elif month in [6, 7, 8]:  # Winter
+            return "❄️"
+        else:  # Spring (9, 10, 11)
+            return "🌸"
+    
+    season_emoji = get_season_emoji(current_month)
+    
     # Calculate monthly stats
     monthly_stats = {}
     for round_data in current_year_rounds:
@@ -1064,7 +1112,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     
     # Display monthly tournament if we have data
     if monthly_leaderboard:
-        message += f"*🏅 {current_month_name.upper()} BOARD:*\n"
+        message += f"*{season_emoji} {current_month_name.upper()} BOARD:*\n"
         message += "```\n"
         
         # Table header - compact format (removed Rds column)
@@ -1154,7 +1202,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         message += f"─────────────────────────\n"
         message += f"🎯 {stats['rounds_count']} rounds{dnq_text}\n"
         message += f"📊 WHS {stats['calculated_index']:.1f}{index_arrow} | War HCP {stats['latest_ch']}{ch_arrow}\n"
-        message += f"🏆 PBs: {stats['best_stableford']} stab | {stats['best_gross']} gross\n"
+        message += f"🏆 PBs: {stats['best_stableford']} stb | {stats['best_gross']} gs\n"
         message += f"📈 Avg: {stats['avg_gross']:.1f}\n\n"
     
     message += "```"

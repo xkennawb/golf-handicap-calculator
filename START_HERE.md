@@ -95,8 +95,10 @@ The system now supports rounds from other courses (e.g., Monavale):
 
 The WhatsApp summary has been optimized for mobile viewing with the following sections:
 
-1. **📅 DATE & SCORECARD LINK**
-   - Date in bold with emoji
+1. **📅 DATE & COURSE INFO**
+   - Condensed date format (e.g., "SAT, DEC 27, 2025") - fits on one line
+   - Course name: 🏌️ Warringah Golf Club (or other course)
+   - Weather conditions with emojis (🌧️ 🍃 15°C, drizzle, 17km/h winds)
    - Clickable scorecard URL (if available from Tag Heuer)
 
 2. **🏆 TODAY'S RESULTS**
@@ -105,7 +107,8 @@ The WhatsApp summary has been optimized for mobile viewing with the following se
    - If 18 holes: Shows both "⛳ FRONT 9" and "⛳ BACK 9" sections
    - Course name displayed for non-Warringah rounds (e.g., "🏌️ Monavale")
 
-3. **🏅 DECEMBER BOARD** (or current month)
+3. **☀️ DECEMBER BOARD** (or current month with season emoji)
+   - Season emojis: ☀️ Summer, 🍂 Autumn, ❄️ Winter, 🌸 Spring (Southern Hemisphere)
    - Compact table with rankings and averages
    - Trend emojis: 📈 improving, 📉 declining, ➡️ stable
    - Based on last 5 rounds form
@@ -122,8 +125,8 @@ The WhatsApp summary has been optimized for mobile viewing with the following se
    - Emoji bullet format:
      - 🎯 Rounds count (with ⚠️ DNQ if < 10 rounds after June)
      - 📊 WHS handicap (with change arrow) | War HCP (with change arrow)
-     - 🏆 Personal bests (Stableford & Gross)
-     - 📈 Average gross score
+     - 🏆 PBs: 20 stb | 38 gs (Stableford & Gross personal bests)
+     - 📈 Avg: 42.8 (average gross score)
    - Clean vertical layout optimized for mobile
 
 6. **🎭 AI COMMENTARY**
@@ -140,10 +143,13 @@ The WhatsApp summary has been optimized for mobile viewing with the following se
 ### Formatting Standards
 - All table underlines: Thin dash (─) character, exactly 25 characters
 - Spacing: Single line feed between sections (no double spacing)
+- Date format: Abbreviated (SAT, DEC 27, 2025) to fit on one line
 - Headers: Bold with asterisks (*TEXT:*) and single line feed after
+- Season emojis: ☀️ Summer (Dec-Feb), 🍂 Autumn (Mar-May), ❄️ Winter (Jun-Aug), 🌸 Spring (Sep-Nov)
 - DNQ Logic: Only shown after June (month > 6) AND when rounds < 10
 - Labels: "WHS" for handicap index, "War HCP" for course handicap
-- Change indicators: Arrows (↑↓) and numeric changes (+0.3/-0.7)
+- PBs format: "stb" for stableford, "gs" for gross
+- Change indicators: Arrows and numeric changes (e.g., (-0.7))
 
 ### AI Commentary Features
 - **Weather-aware**: Factual weather line at start
