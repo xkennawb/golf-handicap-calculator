@@ -552,7 +552,7 @@ def save_round(round_data):
         print(f"Error saving round: {e}")
         return False
 
-def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=None, form_data=None, prediction_text=None):
+def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=None, form_data=None, prediction_text=None, handicap_changes=None):
     """
     Generate humorous AI commentary about the round(s)
     todays_rounds: list of rounds from today (could be 1 for 9 holes, or 2 for 18 holes)
@@ -700,6 +700,9 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
         
         prediction_context = f"\n\nPrediction: {prediction_text}\n" if prediction_text else ""
         
+        # Add handicap changes context
+        handicap_context = handicap_changes if handicap_changes else ""
+        
         # Add 18-hole context if applicable
         holes_context = ""
         if len(todays_rounds) == 2:
@@ -724,9 +727,9 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
         prompt = f"""Generate a golf round commentary with THREE distinct parts:
 
 1. WEATHER LINE (purely factual, no commentary): Simply state the weather conditions at Warringah Golf Club. Just the facts.
-2. PLAYER BANTER (humorous): 2-3 sentences of witty commentary about the players who PLAYED TODAY. Only mention players from the "PLAYERS WHO PLAYED TODAY" list. DO NOT mention any other players in the banter section. DO NOT mention weather, temperature, conditions, wind, rain, or anything weather-related in this section. Reference their recent form if relevant.
-3. SEASON SUMMARY (1 sentence): A brief, witty observation about the overall season leaderboard standings. You may mention any player in the season standings here. Include the AI prediction if provided.
-{relationship_text}{players_today_text}{champion_text}{holes_context}{form_text}{prediction_context}
+2. PLAYER BANTER (humorous): 2-3 sentences of witty commentary about the players who PLAYED TODAY. Only mention players from the "PLAYERS WHO PLAYED TODAY" list. DO NOT mention any other players in the banter section. DO NOT mention weather, temperature, conditions, wind, rain, or anything weather-related in this section. Reference their recent form if relevant. IMPORTANT: If there are handicap changes listed below, you MUST mention them in your banter - this is significant news that should not be ignored.
+3. SEASON SUMMARY (1 sentence): A brief, witty observation about the overall season leaderboard standings. You may mention any player in the season standings here. IMPORTANT: If a prediction is provided below, you MUST include it by mentioning who the next game favorite is based on their recent form.
+{relationship_text}{players_today_text}{champion_text}{holes_context}{form_text}{handicap_context}{prediction_context}
 Today's Results:
 {chr(10).join(player_info)}{weather_text}{season_text}
 
@@ -956,7 +959,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     # Add scorecard URL if available
     scorecard_url = latest_round.get('scorecard_url')
     if scorecard_url:
-        message += f"🔗 View Scorecard: {scorecard_url}\n\n"
+        message += f"🔗 Scorecard:\n{scorecard_url}\n\n"
     
     # Display name mapping
     def get_display_name(name):
@@ -985,9 +988,9 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             # Determine if front or back 9 from course field or date suffix
             is_back9 = round_data['course'] == 'back9' or '-back9' in round_data['date']
             if is_back9:
-                message += "*BACK 9* ⛳\n\n"
+                message += "⛳ `BACK 9`\n"
             else:
-                message += "*FRONT 9* 🚩\n\n"
+                message += "🚩 `FRONT 9`\n"
         
         # Get config for this specific round
         if round_data['course'] == 'back9':
@@ -997,25 +1000,26 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         
         round_players = sorted(round_data['players'], key=lambda x: x['stableford'], reverse=True)
         
+        # Start monospaced block with table format
+        message += "```\n"
+        message += "Rk Player      Pts Gross\n"
+        message += "─────────────────────────\n"
+        
         for rank, player in enumerate(round_players, 1):
             emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
             display_name = get_display_name(player['name'])
-            message += f"{emoji} {rank}. {display_name}\n"
-            message += f"      • {player['stableford']} points"
+            first_name = display_name.split()[0]
             
-            # Only show gross/handicap details for Warringah rounds
+            # Show gross for Warringah rounds, dash for other courses
             if not is_other_course and player['gross'] > 0:
-                ch = calculate_course_handicap(
-                    player['index'],
-                    round_config['slope_display'],
-                    round_config['rating_display'],
-                    round_config['par']
-                )
-                message += f", {player['gross']} gross\n"
-                message += f"      • WHS Australia: {player['index']}\n"
-                message += f"      • Warringah HCP: {ch}\n\n"
+                gross_display = f"{player['gross']:3d}"
             else:
-                message += "\n\n"
+                gross_display = "  -"
+            
+            message += f"{emoji}{rank:2d} {first_name:10s} {player['stableford']:3d} {gross_display}\n"
+        
+        # End monospaced block
+        message += "```\n"
         
         # Add spacing between front 9 and back 9
         if has_18_holes and round_idx == 0:
@@ -1024,55 +1028,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     # Get current year from latest round
     current_year = latest_date_obj.year
     
-    # Calculate form guide BEFORE season leaderboard (need for trend indicators)
-    form_guide = {}
-    for name, stats in player_stats.items():
-        last_5 = stats['season_rounds'][-5:] if len(stats['season_rounds']) >= 5 else stats['season_rounds']
-        if last_5:
-            scores = [r['stableford'] for r in last_5]
-            avg_last_5 = sum(scores) / len(scores)
-            trend = "📈" if len(scores) >= 3 and scores[-1] > scores[0] else "📉" if len(scores) >= 3 and scores[-1] < scores[0] else "➡️"
-            form_guide[name] = {
-                'scores': scores,
-                'avg': avg_last_5,
-                'trend': trend
-            }
-    
-    # Season leaderboard
-    message += f"*📊 {current_year} SEASON LEADERBOARD:*\n\n"
-    
-    for rank, (name, stats) in enumerate(sorted_players, 1):
-        emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
-        
-        # Calculate changes
-        index_change = stats['calculated_index'] - stats['prev_index']
-        ch_change = stats['latest_ch'] - stats['prev_ch']
-        
-        # Format change indicators
-        index_arrow = f" ({index_change:+.1f})" if abs(index_change) > 0.05 else ""
-        ch_arrow = f" ({ch_change:+d})" if ch_change != 0 else ""
-        
-        # Get trend indicator
-        trend = form_guide.get(name, {}).get('trend', '')
-        
-        # Check if player qualifies (minimum 10 rounds)
-        dnq_text = " (⚠️ DNQ)" if stats['rounds_count'] < 10 else ""
-        
-        display_name = get_display_name(name)
-        message += f"{emoji} {rank}. {display_name} {trend}\n"
-        message += f"      • {stats['avg_stableford']:.2f} Points\n"
-        message += f"      • {stats['rounds_count']} rounds{dnq_text}\n"
-        message += f"      • WHS Australia: {stats['calculated_index']:.1f}{index_arrow}\n"
-        message += f"      • Warringah HCP: {stats['latest_ch']}{ch_arrow}\n"
-        message += f"      • Stableford PB: {stats['best_stableford']} pts\n"
-        message += f"      • Gross PB: {stats['best_gross']}\n"
-        message += f"      • Avg Gross: {stats['avg_gross']:.1f}\n\n"
-    
-    # ========================================
-    # FUN FEATURES: Head-to-Head, Form, Badges, Predictions
-    # ========================================
-    
-    # Filter rounds for current year only
+    # Filter rounds for current year only (needed for monthly tournament)
     current_year_rounds = [r for r in rounds if parse_date_flexible(r['date']).year == current_year]
     
     # ========================================
@@ -1108,294 +1064,227 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     
     # Display monthly tournament if we have data
     if monthly_leaderboard:
-        message += f"*🏅 {current_month_name.upper()} TOURNAMENT:*\n\n"
+        message += f"*🏅 {current_month_name.upper()} BOARD:*\n"
+        message += "```\n"
         
-        for rank, (name, avg, rounds) in enumerate(monthly_leaderboard, 1):
+        # Table header - compact format (removed Rds column)
+        message += "Rk Player       Avg\n"
+        message += "─────────────────────────\n"
+        
+        for rank, (name, avg, round_count) in enumerate(monthly_leaderboard, 1):
             emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
             display_name = get_display_name(name)
-            message += f"{emoji} {rank}. {display_name}\n"
-            message += f"      • {avg:.2f} points\n"
-            message += f"      • {rounds} round{'s' if rounds != 1 else ''}\n"
+            
+            # Use first name only for compact display
+            first_name = display_name.split()[0]
+            
+            # Calculate trend for this player (last 5 rounds in current month)
+            player_monthly_rounds = []
+            for round_data in current_year_rounds:
+                round_date = parse_date_flexible(round_data['date'])
+                if round_date.month == current_month:
+                    for player in round_data['players']:
+                        if player['name'] == name:
+                            player_monthly_rounds.append(player['stableford'])
+            
+            # Determine trend emoji
+            if len(player_monthly_rounds) >= 3:
+                trend = "📈" if player_monthly_rounds[-1] > player_monthly_rounds[0] else "📉" if player_monthly_rounds[-1] < player_monthly_rounds[0] else "➡️"
+            else:
+                trend = "➡️"
+            
+            # Format table row with compact spacing (removed round_count, added trend)
+            message += f"{emoji}{rank:2d} {first_name:11s} {avg:4.1f}{trend}\n"
         
-        message += "\n"
+        message += "```\n"
+    
+    # Calculate form guide BEFORE season leaderboard (need for trend indicators)
+    form_guide = {}
+    for name, stats in player_stats.items():
+        last_5 = stats['season_rounds'][-5:] if len(stats['season_rounds']) >= 5 else stats['season_rounds']
+        if last_5:
+            scores = [r['stableford'] for r in last_5]
+            avg_last_5 = sum(scores) / len(scores)
+            trend = "📈" if len(scores) >= 3 and scores[-1] > scores[0] else "📉" if len(scores) >= 3 and scores[-1] < scores[0] else "➡️"
+            form_guide[name] = {
+                'scores': scores,
+                'avg': avg_last_5,
+                'trend': trend
+            }
+    
+    # Season leaderboard - Compact table
+    message += f"*📊 {current_year} LEADERBOARD:*\n"
+    message += "```\n"
+    message += "Rk Player       Avg\n"
+    message += "─────────────────────────\n"
+    
+    for rank, (name, stats) in enumerate(sorted_players, 1):
+        emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
+        display_name = get_display_name(name)
+        first_name = display_name.split()[0]
+        
+        # Get trend indicator
+        trend = form_guide.get(name, {}).get('trend', '')
+        
+        message += f"{emoji}{rank:2d} {first_name:11s} {stats['avg_stableford']:4.1f}{trend}\n"
+    
+    message += "```\n"
+    
+    # Player Stats - Detailed section
+    message += f"*📋 PLAYER STATS:*\n"
+    message += "```\n"
+    
+    for rank, (name, stats) in enumerate(sorted_players, 1):
+        # Calculate changes
+        index_change = stats['calculated_index'] - stats['prev_index']
+        ch_change = stats['latest_ch'] - stats['prev_ch']
+        
+        # Format change indicators
+        index_arrow = f" ({index_change:+.1f})" if abs(index_change) > 0.05 else ""
+        ch_arrow = f" ({ch_change:+d})" if ch_change != 0 else ""
+        
+        # Check if player qualifies (only show DNQ after June)
+        show_dnq = latest_date_obj.month > 6 and stats['rounds_count'] < 10
+        dnq_text = " ⚠️ DNQ" if show_dnq else ""
+        
+        display_name = get_display_name(name)
+        
+        # Cleaner format with emojis for visual clarity (Option 1)
+        message += f"{display_name.upper()}\n"
+        message += f"─────────────────────────\n"
+        message += f"🎯 {stats['rounds_count']} rounds{dnq_text}\n"
+        message += f"📊 WHS {stats['calculated_index']:.1f}{index_arrow} | War HCP {stats['latest_ch']}{ch_arrow}\n"
+        message += f"🏆 PBs: {stats['best_stableford']} stab | {stats['best_gross']} gross\n"
+        message += f"📈 Avg: {stats['avg_gross']:.1f}\n\n"
+    
+    message += "```"
     
     # ========================================
+    # YEAR-OVER-YEAR COMPARISON (2026+)
     # ========================================
-    # PERFORMANCE TRENDS (Spark Lines)
-    # ========================================
-    # Calculate monthly averages for each player throughout the year
-    monthly_trends = {}
-    for round_data in current_year_rounds:
-        round_date = parse_date_flexible(round_data['date'])
-        month_num = round_date.month
+    if current_year >= 2026:
+        # Get previous year's data for same date range
+        prev_year = current_year - 1
+        current_day_of_year = latest_date_obj.timetuple().tm_yday
         
-        for player in round_data['players']:
-            name = player['name']
-            if name not in monthly_trends:
-                monthly_trends[name] = {i: [] for i in range(1, 13)}  # Jan=1 to Dec=12
-            monthly_trends[name][month_num].append(player['stableford'])
-    
-    # Generate spark lines
-    if monthly_trends:
-        message += "*📈 2025 PERFORMANCE TRENDS:*\n\n"
+        # Filter previous year rounds up to the same day of year
+        prev_year_rounds = []
+        for r in rounds:
+            round_date = parse_date_flexible(r['date'])
+            if round_date.year == prev_year:
+                day_of_year = round_date.timetuple().tm_yday
+                if day_of_year <= current_day_of_year:
+                    prev_year_rounds.append(r)
         
-        # Spark line characters from low to high
-        spark_chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
-        
-        # Sort by season leaderboard order
-        for name, stats in sorted_players:
-            if name in monthly_trends:
-                display_name = get_display_name(name)
-                
-                # Calculate monthly averages with carry-forward for continuous line
-                monthly_avgs = []
-                last_value = None
-                for month in range(1, 13):
-                    if monthly_trends[name][month]:
-                        avg = sum(monthly_trends[name][month]) / len(monthly_trends[name][month])
-                        monthly_avgs.append(avg)
-                        last_value = avg  # Remember this for next gap
+        # Calculate previous year stats
+        prev_year_stats = {}
+        if prev_year_rounds:
+            for round_data in prev_year_rounds:
+                for player in round_data['players']:
+                    name = player['name']
+                    if name not in prev_year_stats:
+                        prev_year_stats[name] = {
+                            'total_stableford': 0,
+                            'rounds_count': 0,
+                            'total_gross': 0,
+                            'differentials': []
+                        }
+                    
+                    prev_year_stats[name]['total_stableford'] += player['stableford']
+                    prev_year_stats[name]['rounds_count'] += 1
+                    if player.get('gross', 0) > 0:
+                        prev_year_stats[name]['total_gross'] += player['gross']
+                    
+                    # Calculate differential for handicap
+                    course_key = round_data['course']
+                    if course_key == 'back9':
+                        config = BACK_9_CONFIG
                     else:
-                        # Carry forward the last known value for continuous line
-                        monthly_avgs.append(last_value)
+                        config = FRONT_9_CONFIG
+                    
+                    if player.get('gross', 0) > 0:
+                        diff = calculate_differential(
+                            player['gross'],
+                            config['rating'],
+                            config['slope'],
+                            config['par']
+                        )
+                        prev_year_stats[name]['differentials'].append({
+                            'differential': diff,
+                            'date': round_data['date']
+                        })
+            
+            # Calculate previous year averages and handicaps
+            for name in prev_year_stats:
+                stats = prev_year_stats[name]
+                stats['avg_stableford'] = stats['total_stableford'] / stats['rounds_count']
+                if stats['total_gross'] > 0:
+                    stats['avg_gross'] = stats['total_gross'] / stats['rounds_count']
+                else:
+                    stats['avg_gross'] = 0
                 
-                # Generate spark line
-                # Filter out None values for min/max calculation
-                valid_avgs = [a for a in monthly_avgs if a is not None]
-                if len(valid_avgs) >= 3:  # Need at least 3 months of data
-                    min_avg = min(valid_avgs)
-                    max_avg = max(valid_avgs)
-                    range_avg = max_avg - min_avg if max_avg > min_avg else 1
-                    
-                    spark_line = ""
-                    for avg in monthly_avgs:
-                        if avg is None:
-                            # Skip leading months before first round
-                            continue
-                        else:
-                            # Normalize to 0-7 range for spark characters
-                            normalized = (avg - min_avg) / range_avg
-                            char_index = min(7, int(normalized * 7))
-                            spark_line += spark_chars[char_index]
-                    
-                    # Analyze trend: compare first quarter vs last quarter
-                    first_quarter = [v for v in valid_avgs[:4] if v is not None]
-                    last_quarter = [v for v in valid_avgs[-4:] if v is not None]
-                    
-                    if first_quarter and last_quarter:
-                        first_avg = sum(first_quarter) / len(first_quarter)
-                        last_avg = sum(last_quarter) / len(last_quarter)
-                        diff = last_avg - first_avg
-                        
-                        if diff > 2:
-                            trend_summary = "📈 Strong finish - trending upward"
-                        elif diff > 0.5:
-                            trend_summary = "↗️ Improving form through the year"
-                        elif diff < -2:
-                            trend_summary = "📉 Tailing off - started stronger"
-                        elif diff < -0.5:
-                            trend_summary = "↘️ Form declining as year progressed"
-                        else:
-                            trend_summary = "➡️ Consistent throughout the year"
-                    else:
-                        trend_summary = "Limited data for trend analysis"
-                    
-                    # Get overall season average
-                    season_avg = stats['avg_stableford']
-                    message += f"{display_name}: ({season_avg:.1f} avg)\n   {spark_line}\n   _{trend_summary}_\n\n"
+                # Calculate handicap index
+                if stats['differentials']:
+                    sorted_diffs = sorted(stats['differentials'], key=lambda x: x['date'])
+                    differentials = [d['differential'] for d in sorted_diffs]
+                    hc_calc = HandicapCalculator()
+                    stats['handicap_index'] = hc_calc.update_handicap_index(0, differentials)
+                else:
+                    stats['handicap_index'] = 0
         
-        message += ""
+        # Build comparison if we have previous year data
+        if prev_year_stats:
+            message += f"*📊 YEAR-OVER-YEAR COMPARISON:*\n"
+            message += f"({current_year} vs {prev_year} - Same Period)\n\n"
+            message += "```\n"
+            
+            # Only compare players who played in both years
+            for rank, (name, stats) in enumerate(sorted_players, 1):
+                if name in prev_year_stats:
+                    prev_stats = prev_year_stats[name]
+                    
+                    # Calculate changes
+                    pts_change = stats['avg_stableford'] - prev_stats['avg_stableford']
+                    hcp_change = stats['calculated_index'] - prev_stats['handicap_index']
+                    
+                    # Determine trend emoji
+                    if pts_change > 1.0:
+                        trend = "📈"
+                    elif pts_change > 0.2:
+                        trend = "↗️"
+                    elif pts_change < -1.0:
+                        trend = "📉"
+                    elif pts_change < -0.2:
+                        trend = "↘️"
+                    else:
+                        trend = "➡️"
+                    
+                    emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
+                    display_name = get_display_name(name)
+                    
+                    message += f"{emoji} {rank}. {display_name}\n"
+                    message += f"  {current_year}: {stats['avg_stableford']:.1f} avg • {stats['rounds_count']} rounds • WHS {stats['calculated_index']:.1f}\n"
+                    message += f"  {prev_year}: {prev_stats['avg_stableford']:.1f} avg • {prev_stats['rounds_count']} rounds • WHS {prev_stats['handicap_index']:.1f}\n"
+                    message += f"  {trend} {pts_change:+.1f} pts • {hcp_change:+.1f} HCP\n\n"
+            
+            message += "```\n\n"
     
-    # ========================================
-    # FUN FEATURES: Head-to-Head, Form, Badges, Predictions
-    # ========================================
-    h2h_records = {}
-    for round_data in current_year_rounds:
-        round_players = sorted(round_data['players'], key=lambda x: x['stableford'], reverse=True)
-        if len(round_players) >= 2:
-            winner = round_players[0]
-            for loser in round_players[1:]:
-                key = tuple(sorted([winner['name'], loser['name']]))
-                if key not in h2h_records:
-                    h2h_records[key] = {winner['name']: 0, loser['name']: 0}
-                h2h_records[key][winner['name']] += 1
-    
-    # Find ALL interesting rivalries (at least 5 meetings) and rotate through them
-    all_rivalries = []
-    for (p1, p2), records in h2h_records.items():
-        total = records[p1] + records[p2]
-        if total >= 5:
-            diff = abs(records[p1] - records[p2])
-            all_rivalries.append({
-                'p1': p1, 'p2': p2,
-                'p1_wins': records[p1], 'p2_wins': records[p2],
-                'diff': diff, 'total': total
-            })
-    
-    # Sort by closest matchup (smallest diff)
-    all_rivalries.sort(key=lambda x: x['diff'])
-    
-    # Rotate through rivalries based on week number to show different ones
-    week_number = latest_date_obj.isocalendar()[1]
-    rivalry_to_show = all_rivalries[week_number % len(all_rivalries)] if all_rivalries else None
-    
-    # 2. FORM GUIDE was calculated earlier (needed for trend indicators)
-    # Find hottest player (best last 5 avg)
+    # Calculate hottest player for AI commentary (best last 5 avg)
     hottest = max(form_guide.items(), key=lambda x: x[1]['avg']) if form_guide else None
     
-    # 3. ACHIEVEMENTS/BADGES (current year only)
-    all_badges = []  # Store all badge holders
+    # Prepare handicap change information for today's players
+    todays_player_names = [p['name'] for round_data in todays_rounds for p in round_data['players']]
     
-    # Badge: 20+ Club (20+ points multiple times)
+    handicap_changes_text = ""
     for name, stats in player_stats.items():
-        count_20plus = sum(1 for r in stats['season_rounds'] if r['stableford'] >= 20)
-        if count_20plus >= 3:
-            all_badges.append({
-                'name': name,
-                'badge': f"🎯 20+ CLUB x{count_20plus}",
-                'priority': count_20plus  # Higher count = higher priority
-            })
+        if name in todays_player_names:
+            index_change = stats['calculated_index'] - stats['prev_index']
+            if abs(index_change) > 0.05:  # Only mention significant changes
+                direction = "dropped" if index_change < 0 else "increased"
+                handicap_changes_text += f"- {name}: WHS handicap {direction} from {stats['prev_index']:.1f} to {stats['calculated_index']:.1f} ({index_change:+.1f})\n"
     
-    # Badge: Most Improved (biggest handicap drop)
-    improvements = {}
-    for name, stats in player_stats.items():
-        if len(stats['rounds']) >= 10:
-            first_10_avg_diff = sum([r['gross'] - 35 for r in stats['rounds'][:10]]) / 10
-            last_10_avg_diff = sum([r['gross'] - 35 for r in stats['rounds'][-10:]]) / 10
-            improvement = first_10_avg_diff - last_10_avg_diff
-            if improvement > 1.5:
-                improvements[name] = improvement
-    
-    if improvements:
-        most_improved = max(improvements.items(), key=lambda x: x[1])
-        all_badges.append({
-            'name': most_improved[0],
-            'badge': f"📈 MOST IMPROVED",
-            'priority': 100  # High priority
-        })
-    
-    # Badge: Mr. Consistent (played 80%+ of rounds)
-    max_rounds = max([stats['rounds_count'] for stats in player_stats.values()])
-    for name, stats in player_stats.items():
-        if stats['rounds_count'] >= max_rounds * 0.8 and max_rounds >= 20:
-            all_badges.append({
-                'name': name,
-                'badge': f"💪 GRINDER",
-                'priority': stats['rounds_count']
-            })
-    
-    # Rotate through badges based on week number
-    badge_to_show = None
-    if all_badges:
-        # Sort by priority, then rotate
-        all_badges.sort(key=lambda x: x['priority'], reverse=True)
-        badge_to_show = all_badges[week_number % len(all_badges)]
-    
-    # 4. CLUTCH FACTOR (Wins from contention)
-    # Track wins/losses when within 2 points of leader
-    clutch_stats = {}
-    for round_data in current_year_rounds:
-        round_players = sorted(round_data['players'], key=lambda x: x['stableford'], reverse=True)
-        if len(round_players) >= 2:
-            leader_score = round_players[0]['stableford']
-            winner_name = round_players[0]['name']
-            
-            # Find all players within 2 points of leader (in contention)
-            for player in round_players:
-                name = player['name']
-                points_behind = leader_score - player['stableford']
-                
-                # Only track if within 2 points (including the leader)
-                if points_behind <= 2:
-                    if name not in clutch_stats:
-                        clutch_stats[name] = {'wins': 0, 'losses': 0}
-                    
-                    if name == winner_name:
-                        clutch_stats[name]['wins'] += 1
-                    else:
-                        clutch_stats[name]['losses'] += 1
-    
-    # Calculate win percentages for players with at least 3 contention rounds
-    clutch_performers = []
-    for name, stats in clutch_stats.items():
-        total = stats['wins'] + stats['losses']
-        if total >= 3:  # Need at least 3 rounds in contention
-            win_pct = (stats['wins'] / total) * 100
-            clutch_performers.append({
-                'name': name,
-                'wins': stats['wins'],
-                'losses': stats['losses'],
-                'win_pct': win_pct,
-                'total': total
-            })
-    
-    # Find best clutch performer (highest win %)
-    most_clutch = None
-    if clutch_performers:
-        most_clutch = max(clutch_performers, key=lambda x: x['win_pct'])
-    
-    # 5. AI MATCH PREDICTION (based on form)
-    prediction = None
-    latest_players = latest_round['players']  # Get players from most recent round
-    if hottest and len(latest_players) >= 2:
-        hottest_name = hottest[0]
-        prediction = f"🤖 Next round favorite: {get_display_name(hottest_name)} (hottest form: {hottest[1]['avg']:.1f} avg last 5)"
-    
-    # 6. WEEKLY CHALLENGE (simple milestone-based)
-    challenge = None
-    # Check if anyone is close to 500 career points
-    for name, stats in player_stats.items():
-        total_all_time = sum([r['stableford'] for r in stats['rounds']])
-        if 490 <= total_all_time < 500:
-            points_needed = 500 - total_all_time
-            challenge = f"🎯 {get_display_name(name)} is {points_needed} point{'s' if points_needed != 1 else ''} away from 500 career points!"
-            break
-    
-    # Check if anyone close to round milestone
-    if not challenge:
-        for name, stats in player_stats.items():
-            total_rounds = len(stats['rounds'])
-            if total_rounds in [48, 49]:
-                rounds_needed = 50 - total_rounds
-                challenge = f"⭐ {get_display_name(name)} needs {rounds_needed} more round{'s' if rounds_needed != 1 else ''} to hit 50!"
-                break
-    
-    # Build Fun Features Section
-    fun_items = []
-    
-    if rivalry_to_show:
-        p1_name = get_display_name(rivalry_to_show['p1'])
-        p2_name = get_display_name(rivalry_to_show['p2'])
-        fun_items.append(f"⚔️ *Rivalry:* {p1_name} vs {p2_name}: {rivalry_to_show['p1_wins']}-{rivalry_to_show['p2_wins']} this year")
-    
-    if hottest:
-        hot_name = get_display_name(hottest[0])
-        fun_items.append(f"🔥 *Hot Hand:* {hot_name} ({hottest[1]['trend']} {hottest[1]['avg']:.1f} avg last 5)")
-    
-    # Add clutch factor
-    if most_clutch:
-        clutch_name = get_display_name(most_clutch['name'])
-        wins = most_clutch['wins']
-        losses = most_clutch['losses']
-        win_pct = most_clutch['win_pct']
-        fun_items.append(f"💎 *Clutch Factor:* {clutch_name} {wins}-{losses} ({win_pct:.0f}% from contention)")
-    
-    # Add explicit prediction
-    if prediction:
-        fun_items.append(prediction)
-    
-    # Show rotating badge
-    if badge_to_show:
-        fun_items.append(f"{badge_to_show['badge']}: {get_display_name(badge_to_show['name'])}")
-    
-    if challenge:
-        fun_items.append(challenge)
-    
-    # Add fun features section if we have any
-    if fun_items:
-        message += "*🎮 FUN STATS:*\n\n"
-        for item in fun_items[:5]:  # Increased to 5 items to include clutch factor
-            message += f"{item}\n\n"
+    if handicap_changes_text:
+        handicap_changes_text = f"\n\nHANDICAP CHANGES FROM TODAY'S ROUND (mention these changes in your commentary):\n{handicap_changes_text}"
     
     # Add AI commentary
     print("DEBUG: About to call generate_ai_commentary")
@@ -1411,12 +1300,13 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             sorted_players, 
             sorted_players, 
             form_data=form_guide,
-            prediction_text=ai_prediction_text
+            prediction_text=ai_prediction_text,
+            handicap_changes=handicap_changes_text
         )
         print(f"DEBUG: generate_ai_commentary returned: {commentary is not None}")
         if commentary:
             print(f"DEBUG: Adding commentary to message")
-            message += f"*🎭 AI COMMENTARY:*\n\n{commentary}\n"
+            message += f"\n*🎭 AI COMMENTARY:*\n```\n{commentary}\n```\n"
         else:
             print(f"DEBUG: No commentary generated (returned None)")
     except Exception as e:
@@ -1456,6 +1346,10 @@ def lambda_handler(event, context):
                 headers.get('authorization') or
                 headers.get('Authorization')
             )
+            
+            # Strip "Bearer " prefix if present
+            if provided_token and provided_token.startswith('Bearer '):
+                provided_token = provided_token[7:]  # Remove "Bearer " (7 characters)
     
     # Verify token
     if provided_token != SECRET_TOKEN:

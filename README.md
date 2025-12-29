@@ -83,13 +83,27 @@ chcp 65001 >$null; python display_summary.py
 
 ## Files
 
-- `lambda_function.py` - AWS Lambda entry point (1658 lines, includes all features)
+- `lambda_function.py` - AWS Lambda entry point (1575 lines, includes all features)
 - `handicap.py` - Australian WHS handicap calculator with Stableford
-- `weather.py` - Open-Meteo weather API integration
-- `excel_handler.py` - Excel spreadsheet management (legacy)
-- `stats_reporter.py` - Statistics and leaderboard generator (legacy)
-- `build_lambda_package.ps1` - Build script for Lambda deployment
+- `build_lambda_package.ps1` - Build script for Lambda deployment (with Linux binaries)
 - `upload_lambda.py` - Upload script for AWS Lambda
+
+## WhatsApp Summary Format
+
+**Optimized for mobile viewing** (as of Dec 29, 2025):
+
+1. **TODAY'S RESULTS** - Compact tables with rankings
+2. **DECEMBER BOARD** - Monthly leaderboard with trend emojis (📈📉➡️)
+3. **2025 LEADERBOARD** - Season standings with form trends
+4. **PLAYER STATS** - Clean format with emoji bullets (🎯📊🏆📈)
+5. **AI COMMENTARY** - Weather + banter + handicap changes + predictions
+
+**Recent Changes**:
+- Removed Performance Trends and FUN STATS for cleaner mobile display
+- Standardized all table underlines to 25 characters
+- AI now mentions significant handicap changes (>0.05)
+- Added form-based predictions for next game favorite
+- Shortened headers for mobile (e.g., "DECEMBER BOARD" vs "DECEMBER LEADERBOARD")
 
 ## License
 

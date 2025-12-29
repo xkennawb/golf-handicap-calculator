@@ -1,6 +1,6 @@
 # 🏌️ Golf Handicap Tracker - Start Here
 
-**Last Updated**: December 28, 2025
+**Last Updated**: December 29, 2025
 
 ---
 
@@ -9,14 +9,15 @@
 Read these in order when starting a session:
 
 1. **QUICK_REFERENCE.md** ← Start here for quick reference
-2. **SESSION_2025-12-14_improvements.md** - AI commentary, weather, 18-hole support
+2. **SESSION_2025-12-29_mobile_optimization.md** - WhatsApp format optimization & handicap changes
 3. **SESSION_2025-12-20_fixes.md** - Critical bug fixes (parsing, handicaps, AI restoration)
+4. **SESSION_2025-12-14_improvements.md** - AI commentary, weather, 18-hole support
 
 ---
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1678 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `lambda_function.py` (1575 lines, full version with all features)  
 **❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
@@ -45,7 +46,7 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 - **AWS Function**: `golf-handicap-tracker` in `ap-southeast-2`
 - **Runtime**: Python 3.13
-- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 28, 2025)
+- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 29, 2025)
   - 48 Warringah rounds (handicap eligible)
   - 2 Monavale rounds (stableford only, not handicap eligible)
 - **Auth Token**: `HnB9_VsxLXQVVQqNXi2ilSyY0hPQDJ9EcEt-mVoGej0`
@@ -90,40 +91,67 @@ The system now supports rounds from other courses (e.g., Monavale):
 
 ## 🎮 Summary Features (December 2025)
 
-### Core Sections
-- 📅 **TODAY'S RESULTS** - Latest round(s) with bullet points
-  - Shows course name (Warringah or other courses)
-  - If 18 holes played: Shows both "FRONT 9 🚩" and "BACK 9 ⛳" sections (uppercase with flag emojis)
-  - Each player listed with points and gross score
-  - 🔗 **Scorecard URL link** displayed after date header (if available from Tag Heuer)
-- 📊 **SEASON LEADERBOARD** - Year stats with trend indicators (📈📉➡️) and bullet points
-  - Includes average gross score for each player
-  - **DNQ indicator** for players with less than 10 rounds: "(⚠️ DNQ)" (need 10 to qualify)
-  - **Only shows active players** (those who have played at least 1 round in current season)
-- 🏅 **MONTHLY TOURNAMENT** - Current month only with bullet points
-  - Separate bullet points for average points and number of rounds
-- 📈 **PERFORMANCE TRENDS** - Continuous line graphs showing year-long form
-  - Spark line visualization for each player (Jan-Dec)
-  - Carries forward last value when no rounds played (smooth trend)
-  - Trend summary comparing first quarter vs last quarter
-  - Shows if finishing strong, declining, or consistent
-- 🎮 **FUN STATS** - Head-to-head, hot hand, clutch factor (W-L format), predictions, rotating badges
-- 🎭 **AI COMMENTARY** - Weather-aware banter
-  - Only mentions players who actually played that day
-  - Separate weather line (factual only) with **weather emojis** (☀️🌧️⛅☁️⛈️🍃💨)
-  - Accurate about Front 9 vs Back 9 scores
+### WhatsApp Summary Structure
 
-### Labels & Formatting
-- "WHS Australia:" and "Warringah HCP:" (not "HCP:" or "Index:")
-- "Points" for averages (not "avg" or "avg stableford")
-- Bullet points (•) for all stats under player names
-- Separate lines for HCP and Warringah HCP in TODAY'S RESULTS
-- "Avg Gross:" shown in season leaderboard
+The WhatsApp summary has been optimized for mobile viewing with the following sections:
 
-### Weekly Rotation
-- Rivalry matchups rotate based on ISO week number
-- Achievement badges (20+ Club, Most Improved, Grinder) rotate weekly
-- All features year-specific (reset in 2026)
+1. **📅 DATE & SCORECARD LINK**
+   - Date in bold with emoji
+   - Clickable scorecard URL (if available from Tag Heuer)
+
+2. **🏆 TODAY'S RESULTS**
+   - Compact table format with 25-character thin dash underlines
+   - Rankings (🥇🥈🥉), player names, points, gross scores
+   - If 18 holes: Shows both "⛳ FRONT 9" and "⛳ BACK 9" sections
+   - Course name displayed for non-Warringah rounds (e.g., "🏌️ Monavale")
+
+3. **🏅 DECEMBER BOARD** (or current month)
+   - Compact table with rankings and averages
+   - Trend emojis: 📈 improving, 📉 declining, ➡️ stable
+   - Based on last 5 rounds form
+   - 25-character thin dash underlines
+
+4. **📊 2025 LEADERBOARD** (season standings)
+   - Compact table with rankings and averages
+   - Trend emojis: 📈📉➡️ based on last 5 rounds
+   - **Only shows qualified players** (10+ rounds)
+   - 25-character thin dash underlines
+
+5. **📋 PLAYER STATS**
+   - Uppercase player names with 25-character thin dash underlines
+   - Emoji bullet format:
+     - 🎯 Rounds count (with ⚠️ DNQ if < 10 rounds after June)
+     - 📊 WHS handicap (with change arrow) | War HCP (with change arrow)
+     - 🏆 Personal bests (Stableford & Gross)
+     - 📈 Average gross score
+   - Clean vertical layout optimized for mobile
+
+6. **🎭 AI COMMENTARY**
+   - Weather line (factual, with emojis: ☀️🌧️⛅☁️⛈️🍃💨)
+   - Player banter (humorous, mentions ALL players who played)
+   - **Includes handicap changes** when significant (>0.05 change)
+   - Season summary with next game prediction (based on hottest form)
+   - Father-son relationships correct (Fletcher is Andy's son)
+
+### Removed Sections
+- ❌ **Performance Trends** - Removed for cleaner mobile display (trends now shown as emojis)
+- ❌ **FUN STATS** - Removed to reduce clutter
+
+### Formatting Standards
+- All table underlines: Thin dash (─) character, exactly 25 characters
+- Spacing: Single line feed between sections (no double spacing)
+- Headers: Bold with asterisks (*TEXT:*) and single line feed after
+- DNQ Logic: Only shown after June (month > 6) AND when rounds < 10
+- Labels: "WHS" for handicap index, "War HCP" for course handicap
+- Change indicators: Arrows (↑↓) and numeric changes (+0.3/-0.7)
+
+### AI Commentary Features
+- **Weather-aware**: Factual weather line at start
+- **Player-specific**: Only mentions players who played that day
+- **Handicap changes**: Mentions significant WHS handicap changes (e.g., "Fletcher dropped from 14.7 to 14.0")
+- **Form-based predictions**: Identifies next game favorite based on last 5 rounds
+- **Accurate nine references**: Correctly identifies Front 9 vs Back 9 scores
+- **Season finale aware**: Announces champion in late December games
 
 ### 18-Hole Support
 - Tag Heuer cards with both Out and In scores automatically split into 2 rounds
@@ -186,7 +214,7 @@ The system now supports rounds from other courses (e.g., Monavale):
 
 ## ✅ System Status
 
-**All Systems Operational** as of Dec 28, 2025:
+**All Systems Operational** as of Dec 29, 2025:
 - ✅ iOS Shortcut "Post Golf Round" working (Share Sheet integration)
 - ✅ Round submission working (front 9, back 9, or 18 holes)
 - ✅ Scorecard parsing (18-hole cards auto-split into 2 rounds)
@@ -194,17 +222,17 @@ The system now supports rounds from other courses (e.g., Monavale):
 - ✅ Hard/Soft Cap: Prevents excessive handicap increases (WHS standard)
 - ✅ Low Handicap Index tracking (365-day rolling window)
 - ✅ Multi-course support (Monavale rounds tracked separately)
-- ✅ Change tracking (week-over-week)
-- ✅ Performance trends (continuous line graphs with trend summaries)
-- ✅ AI commentary with weather (only mentions players who played)
+- ✅ Change tracking (week-over-week handicap changes with arrows)
+- ✅ AI commentary with weather (OpenAI GPT-4o-mini)
+- ✅ **Handicap change mentions in AI** (drops/increases highlighted)
+- ✅ **Form-based predictions** (next game favorite based on last 5 rounds)
 - ✅ Father-son relationships correct (Fletcher is Andy's son, not Bruce's)
-- ✅ DNQ players (less than 10 rounds) not mentioned as "leading"
+- ✅ DNQ players filtered from season leaderboard (need 10 rounds to qualify)
 - ✅ Season finale detection (Dec 20+) announces champion
-- ✅ WhatsApp-formatted summaries with bullet points
-- ✅ Fun features (rivalries, badges, predictions, clutch factor)
-- ✅ Monthly tournament and best/worst months
-- ✅ Consistent labeling throughout
-- ✅ Historical summary support
+- ✅ WhatsApp-optimized mobile format (compact tables, single spacing)
+- ✅ Trend emojis in leaderboards (📈📉➡️ based on last 5 rounds)
+- ✅ Clean player stats format (uppercase names, emoji bullets)
+- ✅ Historical summary support (view any past date)
 - ✅ 50 rounds in database (48 Warringah + 2 Monavale)
 - ✅ Version control (GitHub: xkennawb/golf-handicap-calculator, private repo)
 

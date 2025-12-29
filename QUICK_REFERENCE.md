@@ -3,7 +3,7 @@
 ## 🚨 CRITICAL: Read This First
 
 ### Files to Edit
-- ✅ **ALWAYS EDIT**: `lambda_function.py` (1591 lines, has AI commentary and all features)
+- ✅ **ALWAYS EDIT**: `lambda_function.py` (1575 lines, has AI commentary and all features)
 - ❌ **DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ### Build & Deploy
@@ -203,5 +203,28 @@ Before deploying changes:
 
 ---
 
-**Last Updated**: December 25, 2025
+**Last Updated**: December 29, 2025
 **Status**: ✅ All systems operational
+
+## 📱 WhatsApp Summary Format (Current)
+
+### Section Order
+1. 📅 Date & Scorecard Link
+2. 🏆 TODAY'S RESULTS (compact table, 25-char underlines)
+3. 🏅 DECEMBER BOARD (monthly leaderboard with trend emojis)
+4. 📊 2025 LEADERBOARD (season leaderboard with trend emojis)
+5. 📋 PLAYER STATS (uppercase names, emoji bullets)
+6. 🎭 AI COMMENTARY (weather + banter + handicap changes + prediction)
+
+### Removed Sections
+- ❌ Performance Trends (replaced with trend emojis)
+- ❌ FUN STATS (too busy for mobile)
+
+### Format Standards
+- All underlines: 25 characters, thin dash (─)
+- Spacing: Single `\n` between sections
+- Headers: Shortened for mobile (e.g., "DECEMBER BOARD" not "DECEMBER LEADERBOARD")
+- Player stats: Emoji bullets (🎯📊🏆📈), uppercase names
+- Trend emojis: 📈📉➡️ based on last 5 rounds
+- DNQ: Only after June, shown as `⚠️ DNQ` on rounds line
+- AI mentions handicap changes when significant (>0.05)

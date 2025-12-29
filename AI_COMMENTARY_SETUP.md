@@ -88,3 +88,24 @@ the course had other ideas about his game plan! 😄
 - Error handling (fails gracefully)
 
 **Maximum possible loss**: $1/month (even under attack)
+
+---
+
+## AI Commentary Features (Dec 2025)
+
+The AI commentary now includes:
+
+1. **Weather Line**: Factual weather conditions with emojis (☀️🌧️⛅)
+2. **Player Banter**: Humorous commentary about all players who played that day
+3. **Handicap Changes**: Automatically mentions when players' WHS handicaps change significantly (>0.05)
+   - Example: "Fletcher dropped his handicap from 14.7 to 14.0"
+4. **Form-Based Predictions**: Identifies next game favorite based on last 5 rounds
+5. **Season Summary**: Brief observation about overall standings
+6. **Father-Son Awareness**: Correctly identifies Fletcher as Andy's son
+
+The AI is explicitly instructed to:
+- Only mention players who actually played
+- Be precise about Front 9 vs Back 9 scores
+- Mention handicap changes when they occur
+- Include predictions about next game favorite
+- Announce season champion in late December games
