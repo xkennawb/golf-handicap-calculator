@@ -90,20 +90,24 @@ chcp 65001 >$null; python display_summary.py
 
 ## WhatsApp Summary Format
 
-**Optimized for mobile viewing** (as of Dec 29, 2025):
+**Optimized for mobile viewing** (as of Dec 31, 2025):
 
 1. **TODAY'S RESULTS** - Compact tables with rankings
-2. **DECEMBER BOARD** - Monthly leaderboard with trend emojis (📈📉➡️)
-3. **2025 LEADERBOARD** - Season standings with form trends
-4. **PLAYER STATS** - Clean format with emoji bullets (🎯📊🏆📈)
-5. **AI COMMENTARY** - Weather + banter + handicap changes + predictions
+2. **DECEMBER BOARD** - Monthly leaderboard with season emojis and trends (📈📉➡️)
+3. **🐐 LEADERBOARD** - Season standings with qualified players only (10+ rounds after June)
+4. **⚠️ Not Qualified** - Separate section for <10 rounds (after June only)
+5. **PLAYER STATS** - Alphabetical by first name, country flags, emoji bullets (🎯📊🏆📈)
+6. **AI COMMENTARY** - Weather + banter + handicap changes + predictions
 
 **Recent Changes**:
+- Changed "2025 LEADERBOARD" to "🐐 LEADERBOARD" (no year, GOAT emoji)
+- Split qualified (10+ rounds) and non-qualified (<10 rounds) players after June
+- Player stats now sorted alphabetically by first name
+- Added country flags before player names (🏴󠁧󠁢󠁥󠁮󠁧󠁿🇦🇺🇳🇿)
 - Removed Performance Trends and FUN STATS for cleaner mobile display
 - Standardized all table underlines to 25 characters
-- AI now mentions significant handicap changes (>0.05)
-- Added form-based predictions for next game favorite
-- Shortened headers for mobile (e.g., "DECEMBER BOARD" vs "DECEMBER LEADERBOARD")
+- AI mentions significant handicap changes (>0.05)
+- Year-over-year comparison disabled (can be re-enabled later)
 
 ## License
 

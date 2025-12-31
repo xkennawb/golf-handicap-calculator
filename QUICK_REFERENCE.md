@@ -203,7 +203,7 @@ Before deploying changes:
 
 ---
 
-**Last Updated**: December 29, 2025
+**Last Updated**: December 31, 2025
 **Status**: ✅ All systems operational
 
 ## 📱 WhatsApp Summary Format (Current)
@@ -212,9 +212,10 @@ Before deploying changes:
 1. 📅 Date & Scorecard Link
 2. 🏆 TODAY'S RESULTS (compact table, 25-char underlines)
 3. 🏅 DECEMBER BOARD (monthly leaderboard with trend emojis)
-4. 📊 2025 LEADERBOARD (season leaderboard with trend emojis)
-5. 📋 PLAYER STATS (uppercase names, emoji bullets)
-6. 🎭 AI COMMENTARY (weather + banter + handicap changes + prediction)
+4. 🐐 LEADERBOARD (season leaderboard with trend emojis, qualified players only)
+5. ⚠️ Not Qualified (after June only, <10 rounds, no headers, aligned columns)
+6. 📋 PLAYER STATS (alphabetical by first name, country flags, uppercase names, emoji bullets)
+7. 🎭 AI COMMENTARY (weather + banter + handicap changes + prediction)
 
 ### Removed Sections
 - ❌ Performance Trends (replaced with trend emojis)
@@ -224,7 +225,12 @@ Before deploying changes:
 - All underlines: 25 characters, thin dash (─)
 - Spacing: Single `\n` between sections
 - Headers: Shortened for mobile (e.g., "DECEMBER BOARD" not "DECEMBER LEADERBOARD")
+- Leaderboard: "🐐 LEADERBOARD" (no year, just LEADERBOARD)
+- Player stats: Alphabetical by first name (Andy, Bruce, Fletcher, Hamish, Steve)
+- Country flags: 🏴󠁧󠁢󠁥󠁮󠁧󠁿 England, 🇦🇺 Australia, 🇳🇿 New Zealand before player names
 - Player stats: Emoji bullets (🎯📊🏆📈), uppercase names
 - Trend emojis: 📈📉➡️ based on last 5 rounds
-- DNQ: Only after June, shown as `⚠️ DNQ` on rounds line
+- DNQ: Only after June (month > 6), shown as `⚠️ DNQ` on rounds line
+- Not Qualified section: After June, no bold, no headers/underlines, aligned with leaderboard
 - AI mentions handicap changes when significant (>0.05)
+- Year-over-year comparison: Disabled (can be re-enabled by changing if False to if current_year >= 2026)

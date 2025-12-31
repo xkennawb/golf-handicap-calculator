@@ -391,7 +391,50 @@ as the rest of the competitors scramble to catch up!
 
 ---
 
-## 📞 Support Notes
+## � Additional Updates (December 30-31, 2025)
+
+### LEADERBOARD Changes
+1. ✅ Changed header from "📊 2025 LEADERBOARD" to "🐐 LEADERBOARD"
+   - Removed year (just "LEADERBOARD" now)
+   - Changed emoji from bar chart to GOAT (Greatest Of All Time)
+   
+2. ✅ Split leaderboard into qualified and non-qualified sections
+   - Main leaderboard shows only players with 10+ rounds (after June)
+   - New "⚠️ Not Qualified" section for players with <10 rounds
+   - DNQ section only appears after June (months 7-12)
+   - DNQ section has no bold, no table headers/underlines
+   - DNQ section columns aligned with main leaderboard
+
+### Player Stats Improvements
+3. ✅ Sorted alphabetically by first name
+   - Order: Andy, Bruce, Fletcher, Hamish, Steve
+   - Makes scanning for specific players easier
+
+4. ✅ Added country flag emojis before player names
+   - 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Andy Jakes (England)
+   - 🇦🇺 Fletcher Jakes (Australia)
+   - 🇳🇿 Bruce Kennaway (New Zealand)
+   - 🇳🇿 Hamish McNee (New Zealand)
+   - 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Steve Lewthwaite (England)
+
+### Year-Over-Year Comparison
+5. ✅ Disabled for now (can be re-enabled later)
+   - Changed condition from `if current_year >= 2026:` to `if False:`
+   - Code remains in place for future reactivation
+   - Feature showed 2026 vs 2025 comparison for same period
+   - Had 🔍 magnifying glass emoji
+   - Was alphabetically sorted by first name with no rankings
+
+### Code Location Reference
+- Line 1164: 🐐 LEADERBOARD header
+- Lines 1162-1212: Qualified/non-qualified split logic
+- Lines 1220-1230: Player stats alphabetical sorting
+- Lines 1232-1248: Country flag dictionary
+- Line 1254: Year-over-year comparison disabled (if False)
+
+---
+
+## �📞 Support Notes
 
 If issues arise:
 1. Check CloudWatch logs for AI API errors

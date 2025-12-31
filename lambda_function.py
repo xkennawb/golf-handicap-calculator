@@ -1160,13 +1160,27 @@ def generate_whatsapp_summary(rounds, specific_date=None):
                 'trend': trend
             }
     
-    # Season leaderboard - Compact table
-    message += f"*📊 {current_year} LEADERBOARD:*\n"
+    # Season leaderboard - Split between qualified and non-qualified players
+    # Check if after June to apply DNQ logic
+    show_dnq = latest_date_obj.month > 6
+    
+    # Split players into qualified and non-qualified
+    qualified_players = []
+    dnq_players = []
+    
+    for name, stats in sorted_players:
+        if show_dnq and stats['rounds_count'] < 10:
+            dnq_players.append((name, stats))
+        else:
+            qualified_players.append((name, stats))
+    
+    # Main leaderboard - Only qualified players
+    message += f"*🐐 LEADERBOARD:*\n"
     message += "```\n"
     message += "Rk Player       Avg\n"
     message += "─────────────────────────\n"
     
-    for rank, (name, stats) in enumerate(sorted_players, 1):
+    for rank, (name, stats) in enumerate(qualified_players, 1):
         emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
         display_name = get_display_name(name)
         first_name = display_name.split()[0]
@@ -1178,11 +1192,28 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     
     message += "```\n"
     
+    # Non-qualified players section (if any exist after June)
+    if dnq_players:
+        message += f"⚠️ Not Qualified\n"
+        message += "```\n"
+        
+        for name, stats in dnq_players:
+            display_name = get_display_name(name)
+            first_name = display_name.split()[0]
+            trend = form_guide.get(name, {}).get('trend', '')
+            
+            message += f"     {first_name:11s} {stats['avg_stableford']:4.1f}{trend}\n"
+        
+        message += "```\n"
+    
     # Player Stats - Detailed section
     message += f"*📋 PLAYER STATS:*\n"
     message += "```\n"
     
-    for rank, (name, stats) in enumerate(sorted_players, 1):
+    # Sort players alphabetically by first name for stats section
+    alphabetical_players = sorted(active_players.items(), key=lambda x: x[0].split()[0])
+    
+    for rank, (name, stats) in enumerate(alphabetical_players, 1):
         # Calculate changes
         index_change = stats['calculated_index'] - stats['prev_index']
         ch_change = stats['latest_ch'] - stats['prev_ch']
@@ -1197,8 +1228,18 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         
         display_name = get_display_name(name)
         
+        # Add country flag emoji before name
+        country_flags = {
+            "Andy Jakes": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",  # England
+            "Fletcher Jakes": "🇦🇺",  # Australia
+            "Bruce Kennaway": "🇳🇿",  # New Zealand
+            "Hamish McNee": "🇳🇿",  # New Zealand
+            "Steve Lewthwaite": "🏴󠁧󠁢󠁥󠁮󠁧󠁿"  # England
+        }
+        flag = country_flags.get(display_name, "")
+        
         # Cleaner format with emojis for visual clarity (Option 1)
-        message += f"{display_name.upper()}\n"
+        message += f"{flag} {display_name.upper()}\n"
         message += f"─────────────────────────\n"
         message += f"🎯 {stats['rounds_count']} rounds{dnq_text}\n"
         message += f"📊 WHS {stats['calculated_index']:.1f}{index_arrow} | War HCP {stats['latest_ch']}{ch_arrow}\n"
@@ -1209,8 +1250,9 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     
     # ========================================
     # YEAR-OVER-YEAR COMPARISON (2026+)
+    # DISABLED - Can be re-enabled later by changing False to: current_year >= 2026
     # ========================================
-    if current_year >= 2026:
+    if False:
         # Get previous year's data for same date range
         prev_year = current_year - 1
         current_day_of_year = latest_date_obj.timetuple().tm_yday
@@ -1282,38 +1324,45 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         
         # Build comparison if we have previous year data
         if prev_year_stats:
-            message += f"*📊 YEAR-OVER-YEAR COMPARISON:*\n"
+            message += f"*� YEAR-OVER-YEAR COMPARISON:*\n"
             message += f"({current_year} vs {prev_year} - Same Period)\n\n"
             message += "```\n"
             
-            # Only compare players who played in both years
-            for rank, (name, stats) in enumerate(sorted_players, 1):
+            # Create list of players who played in both years, sorted alphabetically by first name
+            yoy_players = []
+            for name, stats in sorted_players:
                 if name in prev_year_stats:
-                    prev_stats = prev_year_stats[name]
-                    
-                    # Calculate changes
-                    pts_change = stats['avg_stableford'] - prev_stats['avg_stableford']
-                    hcp_change = stats['calculated_index'] - prev_stats['handicap_index']
-                    
-                    # Determine trend emoji
-                    if pts_change > 1.0:
-                        trend = "📈"
-                    elif pts_change > 0.2:
-                        trend = "↗️"
-                    elif pts_change < -1.0:
-                        trend = "📉"
-                    elif pts_change < -0.2:
-                        trend = "↘️"
-                    else:
-                        trend = "➡️"
-                    
-                    emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
-                    display_name = get_display_name(name)
-                    
-                    message += f"{emoji} {rank}. {display_name}\n"
-                    message += f"  {current_year}: {stats['avg_stableford']:.1f} avg • {stats['rounds_count']} rounds • WHS {stats['calculated_index']:.1f}\n"
-                    message += f"  {prev_year}: {prev_stats['avg_stableford']:.1f} avg • {prev_stats['rounds_count']} rounds • WHS {prev_stats['handicap_index']:.1f}\n"
-                    message += f"  {trend} {pts_change:+.1f} pts • {hcp_change:+.1f} HCP\n\n"
+                    yoy_players.append((name, stats))
+            
+            # Sort alphabetically by first name
+            yoy_players_sorted = sorted(yoy_players, key=lambda x: x[0].split()[0])
+            
+            # Display comparison
+            for name, stats in yoy_players_sorted:
+                prev_stats = prev_year_stats[name]
+                
+                # Calculate changes
+                pts_change = stats['avg_stableford'] - prev_stats['avg_stableford']
+                hcp_change = stats['calculated_index'] - prev_stats['handicap_index']
+                
+                # Determine trend emoji
+                if pts_change > 1.0:
+                    trend = "📈"
+                elif pts_change > 0.2:
+                    trend = "↗️"
+                elif pts_change < -1.0:
+                    trend = "📉"
+                elif pts_change < -0.2:
+                    trend = "↘️"
+                else:
+                    trend = "➡️"
+                
+                display_name = get_display_name(name)
+                
+                message += f"{display_name}\n"
+                message += f"  {current_year}: {stats['avg_stableford']:.1f} avg • {stats['rounds_count']} rounds • WHS {stats['calculated_index']:.1f}\n"
+                message += f"  {prev_year}: {prev_stats['avg_stableford']:.1f} avg • {prev_stats['rounds_count']} rounds • WHS {prev_stats['handicap_index']:.1f}\n"
+                message += f"  {trend} {pts_change:+.1f} pts • {hcp_change:+.1f} HCP\n\n"
             
             message += "```\n\n"
     

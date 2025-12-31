@@ -1,6 +1,6 @@
 # 🏌️ Golf Handicap Tracker - Start Here
 
-**Last Updated**: December 29, 2025
+**Last Updated**: December 31, 2025
 
 ---
 
@@ -9,7 +9,7 @@
 Read these in order when starting a session:
 
 1. **QUICK_REFERENCE.md** ← Start here for quick reference
-2. **SESSION_2025-12-29_mobile_optimization.md** - WhatsApp format optimization & handicap changes
+2. **SESSION_2025-12-29_mobile_optimization.md** - WhatsApp format optimization & latest updates
 3. **SESSION_2025-12-20_fixes.md** - Critical bug fixes (parsing, handicaps, AI restoration)
 4. **SESSION_2025-12-14_improvements.md** - AI commentary, weather, 18-hole support
 
@@ -46,7 +46,7 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 - **AWS Function**: `golf-handicap-tracker` in `ap-southeast-2`
 - **Runtime**: Python 3.13
-- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 29, 2025)
+- **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 31, 2025)
   - 48 Warringah rounds (handicap eligible)
   - 2 Monavale rounds (stableford only, not handicap eligible)
 - **Auth Token**: `HnB9_VsxLXQVVQqNXi2ilSyY0hPQDJ9EcEt-mVoGej0`
@@ -114,13 +114,19 @@ The WhatsApp summary has been optimized for mobile viewing with the following se
    - Based on last 5 rounds form
    - 25-character thin dash underlines
 
-4. **📊 2025 LEADERBOARD** (season standings)
+4. **� LEADERBOARD** (season standings)
    - Compact table with rankings and averages
    - Trend emojis: 📈📉➡️ based on last 5 rounds
-   - **Only shows qualified players** (10+ rounds)
+   - **Only shows qualified players** (10+ rounds after June)
    - 25-character thin dash underlines
+   - **⚠️ Not Qualified** section (after June only)
+     - Players with <10 rounds shown separately
+     - No bold, no table headers, aligned with main leaderboard
+     - Only appears after June (months 7-12)
 
 5. **📋 PLAYER STATS**
+   - **Sorted alphabetically by first name** (Andy, Bruce, Fletcher, Hamish, Steve)
+   - **Country flags** before names (🏴󠁧󠁢󠁥󠁮󠁧󠁿 England, 🇦🇺 Australia, 🇳🇿 New Zealand)
    - Uppercase player names with 25-character thin dash underlines
    - Emoji bullet format:
      - 🎯 Rounds count (with ⚠️ DNQ if < 10 rounds after June)
@@ -240,6 +246,10 @@ The WhatsApp summary has been optimized for mobile viewing with the following se
 - ✅ Clean player stats format (uppercase names, emoji bullets)
 - ✅ Historical summary support (view any past date)
 - ✅ 50 rounds in database (48 Warringah + 2 Monavale)
+- ✅ Country flags for players (birthplace emojis)
+- ✅ Player stats sorted alphabetically by first name
+- ✅ Qualified/non-qualified leaderboard split (after June)
+- ✅ Year-over-year comparison disabled (can be re-enabled later)
 - ✅ Version control (GitHub: xkennawb/golf-handicap-calculator, private repo)
 
 ---
