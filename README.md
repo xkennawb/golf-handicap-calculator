@@ -27,8 +27,13 @@ Automated golf handicap tracking system using World Handicap System (WHS).
   - Personal best scores (Stableford and Gross)
 - 🏆 Season leaderboard with rankings
 - 📱 iOS Shortcut integration for easy submission
-- 💬 WhatsApp-formatted summaries
+- 💬 WhatsApp-formatted summaries (mobile-optimized)
 - 🗄️ DynamoDB storage (AWS)
+- 📅 **Year-End Reports** (NEW Jan 2026):
+  - Comprehensive season review with AI commentary
+  - Quarterly lead change tracking
+  - Awards and season highlights
+  - WhatsApp-ready format
 
 ---
 
@@ -36,11 +41,18 @@ Automated golf handicap tracking system using World Handicap System (WHS).
 
 **iPhone → iOS Shortcut → AWS Lambda → DynamoDB → Returns Summary → Share to WhatsApp**
 
+**Weekly Summaries:**
 - **Frontend**: iOS Shortcuts (POST scorecard URL)
-- **Backend**: AWS Lambda (Python 3.13)
+- **Backend**: AWS Lambda `golf-handicap-tracker` (Python 3.13)
 - **Database**: DynamoDB table `golf-rounds`
 - **AI**: OpenAI GPT-4o-mini
 - **Weather**: Open-Meteo API (free, no key needed)
+
+**Year-End Reports:**
+- **Lambda**: `golf-year-end-report` (Python 3.13)
+- **URL**: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/`
+- **AI**: Enhanced commentary with quarterly analysis
+- **Output**: WhatsApp-formatted season review
 
 ---
 

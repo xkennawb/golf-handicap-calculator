@@ -1,6 +1,6 @@
 # 🏌️ Golf Handicap Tracker - Start Here
 
-**Last Updated**: December 31, 2025
+**Last Updated**: January 2, 2026
 
 ---
 
@@ -9,15 +9,16 @@
 Read these in order when starting a session:
 
 1. **QUICK_REFERENCE.md** ← Start here for quick reference
-2. **SESSION_2025-12-29_mobile_optimization.md** - WhatsApp format optimization & latest updates
-3. **SESSION_2025-12-20_fixes.md** - Critical bug fixes (parsing, handicaps, AI restoration)
-4. **SESSION_2025-12-14_improvements.md** - AI commentary, weather, 18-hole support
+2. **SESSION_2026-01-01_year_end_reports.md** - Year-end Lambda, AI fixes (Jan 2026)
+3. **SESSION_2025-12-29_mobile_optimization.md** - WhatsApp format optimization & latest updates
+4. **SESSION_2025-12-20_fixes.md** - Critical bug fixes (parsing, handicaps, AI restoration)
+5. **SESSION_2025-12-14_improvements.md** - AI commentary, weather, 18-hole support
 
 ---
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1575 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `lambda_function.py` (1755 lines, full version with all features)  
 **❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
@@ -44,7 +45,9 @@ python show_saturday_summary.py  # Shows summary for specific date
 
 ## 🔑 Key Facts
 
-- **AWS Function**: `golf-handicap-tracker` in `ap-southeast-2`
+- **AWS Functions**:
+  - `golf-handicap-tracker` - Weekly round summaries
+  - `golf-year-end-report` - Annual season reports (new Jan 2026)
 - **Runtime**: Python 3.13
 - **Database**: DynamoDB table `golf-rounds` (50 rounds as of Dec 31, 2025)
   - 48 Warringah rounds (handicap eligible)

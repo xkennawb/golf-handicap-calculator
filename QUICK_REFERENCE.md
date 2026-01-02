@@ -3,7 +3,7 @@
 ## 🚨 CRITICAL: Read This First
 
 ### Files to Edit
-- ✅ **ALWAYS EDIT**: `lambda_function.py` (1575 lines, has AI commentary and all features)
+- ✅ **ALWAYS EDIT**: `lambda_function.py` (1755 lines, has AI commentary and all features)
 - ❌ **DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ### Build & Deploy

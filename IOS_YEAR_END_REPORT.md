@@ -5,41 +5,37 @@ This shortcut calls your AWS Lambda function to generate and display the year-en
 
 ## Setup Instructions
 
-### 1. Deploy the Lambda Function
+### 1. Deploy the Lambda Function (Already Done! ✅)
 
-```bash
-# Package and deploy the year-end report Lambda
-cd c:\GITHUB\golf-handicap-calculator
+**Function is deployed and ready to use:**
+- Function Name: `golf-year-end-report`
+- Region: `ap-southeast-2`
+- Runtime: Python 3.13
+- URL: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/`
 
-# Create deployment package
-pip install --target ./package boto3
+**To update the function:**
+```powershell
+# Build package with Lambda-compatible binaries
+Remove-Item -Recurse -Force package
+New-Item -ItemType Directory -Force -Path package
+Copy-Item lambda_year_end_report.py package/
 cd package
-zip -r ../year-end-report.zip .
+pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.13 --only-binary=:all: openai -q
 cd ..
-zip -g year-end-report.zip lambda_year_end_report.py
+Compress-Archive -Path package\* -DestinationPath year-end-report.zip -Force
 
-# Deploy to AWS (you'll need to create this function first)
-aws lambda create-function \
-  --function-name golf-year-end-report \
-  --runtime python3.13 \
-  --role arn:aws:iam::YOUR_ACCOUNT:role/lambda-execution-role \
-  --handler lambda_year_end_report.lambda_handler \
-  --zip-file fileb://year-end-report.zip \
-  --region ap-southeast-2
+# Deploy
+python -c "import boto3; c = boto3.client('lambda', region_name='ap-southeast-2', verify=False); z = open('year-end-report.zip', 'rb').read(); c.update_function_code(FunctionName='golf-year-end-report', ZipFile=z); print('Updated')"
 ```
 
-### 2. Create Function URL (if not already done)
+### 2. Function URL (Already Configured! ✅)
 
-```bash
-# Create a function URL for easy access from iOS
-aws lambda create-function-url-config \
-  --function-name golf-year-end-report \
-  --auth-type NONE \
-  --region ap-southeast-2
-
-# This will return a URL like:
-# https://abc123xyz.lambda-url.ap-southeast-2.on.aws/
+**Your Lambda URL:**
 ```
+https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/
+```
+
+This URL is public and ready to use in your iOS Shortcut.
 
 ### 3. Create iOS Shortcut
 
@@ -48,7 +44,7 @@ aws lambda create-function-url-config \
 1. **Add to Home Screen** - Name: "⛳ Year End Report"
 
 2. **Get Contents of URL**
-   - URL: `https://YOUR-LAMBDA-URL.lambda-url.ap-southeast-2.on.aws/`
+   - URL: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/`
    - Method: GET
    - Request Body: (none)
    - Headers: (none)
@@ -81,7 +77,7 @@ To generate a report for a different year:
    - Input Type: Number
 
 2. Modify **Get Contents of URL**
-   - URL: `https://YOUR-LAMBDA-URL.lambda-url.ap-southeast-2.on.aws/?year={AskForInput}`
+   - URL: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/?year={AskForInput}`
 
 ## Usage
 
@@ -100,6 +96,18 @@ To generate a report for a different year:
 
 ## Example URLs
 
-- Get current year report: `https://YOUR-URL.lambda-url.ap-southeast-2.on.aws/`
-- Get 2025 report: `https://YOUR-URL.lambda-url.ap-southeast-2.on.aws/?year=2025`
-- Get 2024 report: `https://YOUR-URL.lambda-url.ap-southeast-2.on.aws/?year=2024`
+- Get current year report: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/`
+- Get 2025 report: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/?year=2025`
+- Get 2024 report: `https://fgx264nnprn7d4havgkn5mlcim0zttjt.lambda-url.ap-southeast-2.on.aws/?year=2024`
+
+## Local Testing
+
+You can also generate the report locally and save to file:
+
+```powershell
+# Fetch and save report to file
+python save_report.py
+
+# Opens: 2025_YEAR_END_REPORT_WHATSAPP.txt
+# Ready to copy/paste into WhatsApp
+```
