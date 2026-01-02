@@ -687,7 +687,7 @@ def generate_ai_commentary(todays_rounds, sorted_players, season_leaderboard=Non
         has_father_son = 'Fletcher Jakes' in all_player_names and 'Andy Jakes' in all_player_names
         
         # Build relationship context - always include to avoid confusion
-        relationship_text = "\nIMPORTANT PLAYER RELATIONSHIPS - DO NOT GET THIS WRONG:\n- Fletcher Jakes is Andy Jakes' SON (Andy is the father, Fletcher is his son)\n- Bruce Kennaway is NOT related to Fletcher or Andy\n- DO NOT call Fletcher and Andy brothers - they are father and son\n"
+        relationship_text = "\nCRITICAL PLAYER RELATIONSHIPS - DO NOT GET THIS WRONG:\n- Andy Jakes is the FATHER\n- Fletcher Jakes is Andy's SON (father-son relationship)\n- Bruce Kennaway, Steve, and Hamish McNee are FRIENDS only (not related to anyone)\n- NO ONE ELSE is related to each other - they are all just friends\n- DO NOT call Fletcher and Andy brothers - Andy is the father, Fletcher is the son\n- DO NOT suggest anyone else is related - only Andy and Fletcher have a family relationship\n"
         
         # Add form/prediction context if available - only for players who played today
         form_text = ""
@@ -740,6 +740,14 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 3. If a player scored X points "on FRONT 9", do not say they scored X points on the back 9
 4. Each line clearly states which nine the score is from - read it carefully
 5. Example: "Steve: 20 points on FRONT 9" means Steve scored 20 on the FRONT nine, NOT the back nine
+6. RELATIONSHIPS - THIS IS ABSOLUTELY CRITICAL:
+   - ONLY Andy Jakes and Fletcher Jakes are related (Andy is father, Fletcher is son)
+   - Bruce Kennaway is NOT related to Andy or Fletcher - he is just a friend
+   - Steve is NOT related to anyone - he is just a friend
+   - Hamish McNee is NOT related to anyone - he is just a friend
+   - DO NOT make up family relationships that don't exist
+   - DO NOT call anyone "dad" or "son" or "father" unless it's Andy and Fletcher
+   - If Fletcher is not playing, there is NO father-son dynamic today
 
 Format:
 Weather: [temperature, conditions, wind - factual only, no jokes]
@@ -760,7 +768,7 @@ Andy maintains his stranglehold on the season with a commanding average, while t
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a golf commentator. Write ONE factual weather sentence, then humorous sentences about ALL players mentioned, then ONE sentence about season standings. NEVER mention weather in the player commentary."},
+                {"role": "system", "content": "You are a golf commentator. Write ONE factual weather sentence, then humorous sentences about ALL players mentioned, then ONE sentence about season standings. NEVER mention weather in the player commentary. CRITICAL: Only Andy Jakes and Fletcher Jakes are related (father-son). Bruce, Steve, and Hamish are NOT related to anyone - they are friends only. DO NOT invent family relationships."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=250,
@@ -955,19 +963,52 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     # Sort by average
     sorted_players = sorted(active_players.items(), key=lambda x: x[1]['avg_stableford'], reverse=True)
     
-    # Build WhatsApp message with bold headers and multi-line formatting
-    message = f"*📅 {latest_date_str}*\n\n"
-    
-    # Add course name and weather under date
+    # Build WhatsApp message with THE WRAP header format
+    # Get course name
     course_name = latest_round.get('course_display_name', 'Warringah Golf Club')
-    message += f"🏌️ {course_name}\n"
+    course_short = course_name.upper().replace(' GOLF CLUB', ' GC')
     
-    # Get weather info for display at top
+    # Format date as "SAT DEC 27" (abbreviated)
+    # Convert UTC date/time to Sydney time for display
+    date_obj = parse_date_flexible(latest_round['date'])
     tee_time = latest_round.get('time_utc')
-    weather_info = get_weather_for_round(latest_round['date'], tee_time)
+    
+    if tee_time:
+        # Parse time and convert UTC to Sydney (AEDT is UTC+11, AEST is UTC+10)
+        try:
+            hour, minute = map(int, tee_time.split(':'))
+            # Create datetime with UTC time
+            utc_datetime = datetime(date_obj.year, date_obj.month, date_obj.day, hour, minute)
+            # Sydney is UTC+10 or UTC+11 (daylight saving Oct-Apr)
+            # Approximate with +11 for summer months (Oct-Apr)
+            month = date_obj.month
+            offset = 11 if month >= 10 or month <= 4 else 10
+            sydney_datetime = utc_datetime + timedelta(hours=offset)
+            date_obj = sydney_datetime
+        except Exception as e:
+            print(f"DEBUG: Date conversion error, using stored date: {e}")
+    
+    date_formatted = date_obj.strftime('%a %b %d').upper()
+    
+    # Get weather info - strip -back9 suffix if present
+    date_for_weather = latest_round['date'].split('-back9')[0]
+    weather_info = get_weather_for_round(date_for_weather, tee_time)
+    
     if weather_info:
-        # Add weather emoji
+        # Parse weather components
         weather_lower = weather_info.lower()
+        
+        # Extract temperature
+        temp_match = weather_info.split(',')[0] if ',' in weather_info else weather_info
+        temp = temp_match.strip()
+        
+        # Extract wind speed
+        wind_speed = ""
+        if 'km/h' in weather_info:
+            wind_parts = weather_info.split('km/h')[0].split()
+            wind_speed = wind_parts[-1] + 'km/h'
+        
+        # Determine weather emoji
         weather_emoji = ""
         if 'rain' in weather_lower or 'shower' in weather_lower:
             weather_emoji = "🌧️"
@@ -979,17 +1020,33 @@ def generate_whatsapp_summary(rounds, specific_date=None):
             weather_emoji = "☁️"
         elif 'clear' in weather_lower or 'sunny' in weather_lower or 'sun' in weather_lower:
             weather_emoji = "☀️"
+        elif 'drizzle' in weather_lower:
+            weather_emoji = "🌦️"
         else:
-            weather_emoji = "☀️"
+            weather_emoji = "🌤️"
         
+        # Wind emoji
+        wind_emoji = ""
         if 'strong wind' in weather_lower or 'gust' in weather_lower or 'windy' in weather_lower:
-            weather_emoji += " 💨"
+            wind_emoji = "💨"
         elif 'wind' in weather_lower or 'breeze' in weather_lower:
-            weather_emoji += " 🍃"
+            wind_emoji = "💨"
         
-        message += f"{weather_emoji} {weather_info}\n\n"
+        # Extract condition
+        condition_parts = weather_info.split(',')
+        if len(condition_parts) >= 2:
+            condition = condition_parts[1].strip().title()
+        else:
+            condition = "Clear"
+        
+        # Build header - dramatic style with dividers
+        message = f"⛳ *THE WRAP*\n━ *{course_short}* ━\n\n"
+        message += f"📅 {date_formatted}\n"
+        message += f"{weather_emoji} {temp} | {wind_emoji} {wind_speed} | {condition}\n\n"
     else:
-        message += "\n"
+        # Fallback if no weather data
+        message = f"*THE WRAP: {course_short}*\n\n"
+        message += f"📅 {date_formatted}\n\n"
     
     # Add scorecard URL if available
     scorecard_url = latest_round.get('scorecard_url')
@@ -1058,7 +1115,7 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         
         # Add spacing between front 9 and back 9
         if has_18_holes and round_idx == 0:
-            message += "\n"
+            message += ""
     
     # Get current year from latest round
     current_year = latest_date_obj.year
@@ -1403,7 +1460,36 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         print(f"DEBUG: generate_ai_commentary returned: {commentary is not None}")
         if commentary:
             print(f"DEBUG: Adding commentary to message")
-            message += f"\n*🎭 AI COMMENTARY:*\n```\n{commentary}\n```\n"
+            
+            # Add weather emojis to the first line if it mentions weather
+            lines = commentary.split('\n')
+            if lines and len(lines) > 0:
+                first_line = lines[0].lower()
+                weather_emoji = ""
+                
+                # Determine weather emoji from first line
+                if 'rain' in first_line or 'shower' in first_line:
+                    weather_emoji = "🌧️ "
+                elif 'storm' in first_line or 'thunder' in first_line:
+                    weather_emoji = "⛈️ "
+                elif 'drizzle' in first_line:
+                    weather_emoji = "🌦️ "
+                elif 'partly cloudy' in first_line:
+                    weather_emoji = "⛅ "
+                elif 'cloud' in first_line or 'overcast' in first_line:
+                    weather_emoji = "☁️ "
+                elif 'clear' in first_line or 'sunny' in first_line:
+                    weather_emoji = "☀️ "
+                
+                # Add wind emoji if wind mentioned
+                if 'wind' in first_line or 'breeze' in first_line or 'gust' in first_line:
+                    weather_emoji += "💨 "
+                
+                if weather_emoji:
+                    lines[0] = weather_emoji + lines[0]
+                    commentary = '\n'.join(lines)
+            
+            message += f"\n*🎭 AI ROAST & TOAST:*\n```\n{commentary}\n```\n"
         else:
             print(f"DEBUG: No commentary generated (returned None)")
     except Exception as e:
