@@ -2,8 +2,9 @@ import boto3
 import os
 import json
 
-os.environ['AWS_ACCESS_KEY_ID'] = 'REMOVED_AWS_KEY'
-os.environ['AWS_SECRET_ACCESS_KEY'] = 'REMOVED_AWS_SECRET'
+from load_credentials import load_credentials
+
+load_credentials()
 
 client = boto3.client('lambda', region_name='ap-southeast-2', verify=False)
 
@@ -40,3 +41,4 @@ for line in lines:
             break
 
 print("\n" + "=" * 60)
+

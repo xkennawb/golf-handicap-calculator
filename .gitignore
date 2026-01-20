@@ -32,6 +32,8 @@ generate_token.py
 test_openai.py
 *.key
 .env.local
+.env
+load_credentials.py
 
 # Personal Golf Data
 golf_rounds_export*.json

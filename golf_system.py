@@ -14,8 +14,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # AWS setup
 import os
-os.environ['AWS_ACCESS_KEY_ID'] = 'REMOVED_AWS_KEY'
-os.environ['AWS_SECRET_ACCESS_KEY'] = 'REMOVED_AWS_SECRET'
+from load_credentials import load_credentials
+
+load_credentials()
 
 dynamodb = boto3.resource('dynamodb', region_name='ap-southeast-2', verify=False)
 table = dynamodb.Table('golf-rounds')
@@ -333,3 +334,4 @@ if __name__ == '__main__':
     print("="*70)
     
     print("\n[+] All outputs generated successfully!")
+
