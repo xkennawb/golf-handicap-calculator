@@ -26,10 +26,12 @@ aws lambda update-function-code `
 
 # Set environment variable
 Write-Host "Setting OpenAI API key..."
-aws lambda update-function-configuration `
-    --function-name golf-year-end-report `
-    --environment "Variables={OPENAI_API_KEY=REMOVED_OPENAI_KEY}" `
-    --region ap-southeast-2
+Write-Host "ERROR: Set OPENAI_API_KEY manually in AWS Console" -ForegroundColor Red
+Write-Host "Do not hardcode API keys in this script!" -ForegroundColor Yellow
+# aws lambda update-function-configuration `
+#     --function-name golf-year-end-report `
+#     --environment "Variables={OPENAI_API_KEY=your-key-here}" `
+#     --region ap-southeast-2
 
 # Get Function URL
 Write-Host "`nFunction URL:" -ForegroundColor Green
