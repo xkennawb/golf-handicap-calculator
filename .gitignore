@@ -29,6 +29,9 @@ aws-config.json
 add_auth_token.py
 add_weather_key.py
 generate_token.py
+test_openai.py
+*.key
+.env.local
 
 # Personal Golf Data
 golf_rounds_export*.json
