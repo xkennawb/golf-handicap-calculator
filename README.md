@@ -93,12 +93,17 @@ chcp 65001 >$null; python display_summary.py
 5. View handicap updates
 6. Share to WhatsApp group
 
-## Files
+## Project Structure
 
-- `lambda_function.py` - AWS Lambda entry point (1575 lines, includes all features)
-- `handicap.py` - Australian WHS handicap calculator with Stableford
+### Root Directory
 - `build_lambda_package.ps1` - Build script for Lambda deployment (with Linux binaries)
 - `upload_lambda.py` - Upload script for AWS Lambda
+- `README.md`, `LICENSE` - Documentation and licensing
+
+### src/ Directory (Source Code)
+- `src/lambda_function.py` - AWS Lambda entry point (1575 lines, includes all features)
+- `src/handicap.py` - Australian WHS handicap calculator with Stableford
+- `src/weather.py`, `src/golf_system.py` - Supporting modules
 
 ## WhatsApp Summary Format
 

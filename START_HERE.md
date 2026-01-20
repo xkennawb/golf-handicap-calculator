@@ -18,7 +18,7 @@ Read these in order when starting a session:
 
 ## 🚨 CRITICAL: File to Edit
 
-**✅ ALWAYS EDIT**: `lambda_function.py` (1755 lines, full version with all features)  
+**✅ ALWAYS EDIT**: `src/lambda_function.py` (1755 lines, full version with all features)  
 **❌ DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ---
@@ -263,5 +263,5 @@ If you encounter issues:
 1. Check CloudWatch logs in AWS Lambda Console
 2. Read the session files (they document all fixes)
 3. Test locally with `python get_full_summary.py`
-4. Verify correct file being edited (`lambda_function.py`)
+4. Verify correct file being edited (`src/lambda_function.py`)
 5. Ensure build uses Linux binaries (`--platform manylinux2014_x86_64`)

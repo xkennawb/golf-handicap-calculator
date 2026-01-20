@@ -62,12 +62,12 @@ Protection saved: 2.0 strokes
 ## Implementation Details
 
 ### Files Modified
-- `handicap.py`: Added `apply_handicap_caps()` method to `HandicapCalculator`
-- `lambda_function.py`: Updated `calculate_player_handicap_index()` to track LHI and apply caps
+- `src/handicap.py`: Added `apply_handicap_caps()` method to `HandicapCalculator`
+- `src/lambda_function.py`: Updated `calculate_player_handicap_index()` to track LHI and apply caps
 
 ### Code Location
-- **Cap Logic**: `handicap.py` lines 155-181
-- **LHI Tracking**: `lambda_function.py` lines 221-235
+- **Cap Logic**: `src/handicap.py` lines 155-181
+- **LHI Tracking**: `src/lambda_function.py` lines 221-235
 
 ### Testing
 Run `test_handicap_caps.py` to verify cap calculations:

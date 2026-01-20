@@ -64,7 +64,7 @@ mkdir lambda-package
 cd lambda-package
 
 # Copy function
-cp ../lambda_function.py .
+cp ../src/lambda_function.py .
 cp ../requirements.txt .
 
 # Install dependencies

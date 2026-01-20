@@ -3,7 +3,7 @@
 ## 🚨 CRITICAL: Read This First
 
 ### Files to Edit
-- ✅ **ALWAYS EDIT**: `lambda_function.py` (1755 lines, has AI commentary and all features)
+- ✅ **ALWAYS EDIT**: `src/lambda_function.py` (1755 lines, has AI commentary and all features)
 - ❌ **DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ### Build & Deploy
@@ -181,7 +181,7 @@ python check_db.py
 ## ✅ Pre-Deployment Checklist
 
 Before deploying changes:
-1. [ ] Editing `lambda_function.py` (not lambda_function_aws.py)
+1. [ ] Editing `src/lambda_function.py` (not old files in root)
 2. [ ] Read latest session file
 3. [ ] Tested locally with real URLs
 4. [ ] Build script uses Linux binaries (`--platform manylinux2014_x86_64`)
