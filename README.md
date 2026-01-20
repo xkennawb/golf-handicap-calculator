@@ -123,4 +123,4 @@ chcp 65001 >$null; python display_summary.py
 
 ## License
 
-MIT
+GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
