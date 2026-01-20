@@ -149,9 +149,60 @@ curl -X POST https://YOUR-FUNCTION-URL \
 - Verify API key is correct
 - Check you haven't exceeded free tier limits (1000 calls/day)
 
+## Optional: AI Commentary Setup
+
+Add AI-generated commentary to your golf summaries using OpenAI.
+
+### Step 1: Get OpenAI API Key
+
+1. Go to https://platform.openai.com/signup
+2. Create account or sign in
+3. Go to https://platform.openai.com/api-keys
+4. Click "Create new secret key"
+5. Name it "Golf Handicap Lambda"
+6. Copy the key (starts with `sk-...`)
+
+### Step 2: Set Usage Limits (Prevents Overcharges)
+
+1. OpenAI dashboard → Settings → Limits
+2. Set Monthly budget limit: $1.00
+3. Enable email notifications at 50% and 100%
+4. Save
+
+This ensures maximum $1/month cost (covers 10,000+ summaries).
+
+### Step 3: Add to Lambda Environment Variable
+
+**AWS Console Method:**
+1. AWS Console → Lambda → golf-handicap-tracker
+2. Configuration tab → Environment variables
+3. Click Edit → Add environment variable
+4. Key: `OPENAI_API_KEY`
+5. Value: Your `sk-...` key
+6. Save
+
+**AWS CLI Method:**
+```bash
+aws lambda update-function-configuration \
+  --function-name golf-handicap-tracker \
+  --environment "Variables={OPENAI_API_KEY=sk-your-key-here}" \
+  --region ap-southeast-2
+```
+
+### Commentary Features
+
+The AI adds:
+- Weather observations with emojis
+- Humorous player banter
+- Handicap change announcements
+- Form-based predictions
+- Season standings commentary
+
+**Cost per summary:** ~$0.0001 (52 rounds/year = ~$0.005)
+
 ## Costs
 
 - **Lambda**: Free tier includes 1M requests/month (you'll use ~10/month)
-- **S3**: ~$0.023/GB/month (Excel file is <1MB)
-- **Data transfer**: Negligible
+- **DynamoDB**: Free tier includes 25GB storage + 25 read/write units
+- **OpenAI** (optional): ~$0.005/year with $1 hard limit
 - **Total**: Essentially **FREE**
