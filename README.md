@@ -7,9 +7,72 @@ Automated golf handicap tracking system using World Handicap System (WHS).
 ## 🚀 Quick Start
 
 **New to this project? Start here:**
-1. Read [START_HERE.md](START_HERE.md) for overview
-2. Read [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for technical details
-3. Check session files for recent changes
+1. Follow [Installation](#installation) below to set up AWS and deploy
+2. Read [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment options
+3. See [IOS_SHORTCUTS.md](IOS_SHORTCUTS.md) for iOS Shortcut setup
+4. Read [START_HERE.md](START_HERE.md) for development overview
+
+---
+
+## Installation
+
+### Prerequisites
+
+- **AWS Account** - Sign up at https://aws.amazon.com
+- **Python 3.11+** - Download from https://www.python.org
+- **Git** - Download from https://git-scm.com
+
+### Step 1: Clone Repository
+
+```bash
+git clone https://github.com/xkennawb/golf-handicap-calculator.git
+cd golf-handicap-calculator
+```
+
+### Step 2: Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3: Configure AWS Credentials
+
+Create a `.env` file in the project root:
+
+```env
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+OPENAI_API_KEY=sk-your-key-here  # Optional, for AI commentary
+```
+
+**⚠️ Security**: The `.env` file is gitignored. Never commit credentials to Git.
+
+### Step 4: Deploy to AWS Lambda
+
+```powershell
+# Build Lambda package with Linux-compatible binaries
+.\build_lambda_package.ps1
+
+# Deploy to AWS
+python upload_lambda.py
+```
+
+The script will create:
+- Lambda function: `golf-handicap-tracker`
+- DynamoDB table: `golf-rounds`
+- Function URL for iOS Shortcut access
+
+### Step 5: Set Up iOS Shortcut
+
+See [IOS_SHORTCUTS.md](IOS_SHORTCUTS.md) for complete iOS Shortcut configuration.
+
+### Optional: Enable AI Commentary
+
+1. Get OpenAI API key from https://platform.openai.com/api-keys
+2. Set monthly budget limit to $1 (prevents overcharges)
+3. Add to Lambda environment variable `OPENAI_API_KEY`
+
+See [DEPLOYMENT.md](DEPLOYMENT.md#optional-ai-commentary-setup) for detailed instructions.
 
 ---
 
@@ -66,32 +129,19 @@ python upload_lambda.py
 
 **Important**: Build script uses `--platform manylinux2014_x86_64` to get Linux-compatible binaries for AWS Lambda.
 
-### Configure Environment Variables
+### Local Testing
 
-**OpenAI API Key**: Set `OPENAI_API_KEY` in AWS Lambda environment variables for AI commentary.
-
-**Weather**: Uses Open-Meteo API (free, no key required).
-
-**Auth Token**: Set `AUTH_TOKEN` in Lambda environment variables for securing the endpoint.
-
-### Setup iOS Shortcut
-
-See [IOS_SHORTCUT_POST_ROUND.md](IOS_SHORTCUT_POST_ROUND.md) for detailed setup.
-
-## Local Testing
+Test changes locally before deploying:
 
 ```powershell
+# View current summary
 chcp 65001 >$null; python display_summary.py
+
+# Test specific round
+python check_db.py
 ```
 
-## Usage
-
-1. Play your round of golf
-2. Get the Tag Heuer scorecard URL
-3. Run iOS Shortcut
-4. Paste URL
-5. View handicap updates
-6. Share to WhatsApp group
+---
 
 ## Project Structure
 
