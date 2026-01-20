@@ -7,10 +7,34 @@ Automated golf handicap tracking system using World Handicap System (WHS).
 ## 🚀 Quick Start
 
 **New to this project? Start here:**
-1. Follow [Installation](#installation) below to set up AWS and deploy
-2. Read [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment options
+1. Read [Features](#features) below to see what this does
+2. Follow [Installation](#installation) to set up AWS and deploy
 3. See [IOS_SHORTCUTS.md](IOS_SHORTCUTS.md) for iOS Shortcut setup
-4. Read [START_HERE.md](START_HERE.md) for development overview
+4. Read [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment options
+
+---
+
+## Features
+
+- 🏌️ Scrapes Tag Heuer Golf scorecards from URL
+- 🌤️ Fetches weather data for course location and date (Open-Meteo API, free)
+- 🤖 AI-powered commentary with OpenAI (witty banter about each round)
+- 📊 Calculates 9-hole handicaps per WHS Australia (World Handicap System)
+- 🎯 Tracks Stableford and Gross scores for each round
+- 📈 Season statistics for each player:
+  - Average Stableford score
+  - Handicap index and course handicap
+  - Week-over-week handicap changes
+  - Personal best scores (Stableford and Gross)
+- 🏆 Season leaderboard with rankings
+- 📱 iOS Shortcut integration for easy submission
+- 💬 WhatsApp-formatted summaries (mobile-optimized)
+- 🗄️ DynamoDB storage (AWS)
+- 📅 **Year-End Reports** (NEW Jan 2026):
+  - Comprehensive season review with AI commentary
+  - Quarterly lead change tracking
+  - Awards and season highlights
+  - WhatsApp-ready format
 
 ---
 
@@ -73,30 +97,6 @@ See [IOS_SHORTCUTS.md](IOS_SHORTCUTS.md) for complete iOS Shortcut configuration
 3. Add to Lambda environment variable `OPENAI_API_KEY`
 
 See [DEPLOYMENT.md](DEPLOYMENT.md#optional-ai-commentary-setup) for detailed instructions.
-
----
-
-## Features
-
-- 🏌️ Scrapes Tag Heuer Golf scorecards from URL
-- 🌤️ Fetches weather data for course location and date (Open-Meteo API, free)
-- 🤖 AI-powered commentary with OpenAI (witty banter about each round)
-- 📊 Calculates 9-hole handicaps per WHS Australia (World Handicap System)
-- 🎯 Tracks Stableford and Gross scores for each round
-- 📈 Season statistics for each player:
-  - Average Stableford score
-  - Handicap index and course handicap
-  - Week-over-week handicap changes
-  - Personal best scores (Stableford and Gross)
-- 🏆 Season leaderboard with rankings
-- 📱 iOS Shortcut integration for easy submission
-- 💬 WhatsApp-formatted summaries (mobile-optimized)
-- 🗄️ DynamoDB storage (AWS)
-- 📅 **Year-End Reports** (NEW Jan 2026):
-  - Comprehensive season review with AI commentary
-  - Quarterly lead change tracking
-  - Awards and season highlights
-  - WhatsApp-ready format
 
 ---
 
