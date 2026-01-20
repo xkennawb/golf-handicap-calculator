@@ -27,9 +27,9 @@ Write-Host "      Done" -ForegroundColor Green
 Write-Host ""
 Write-Host "[3/4] Copying application files..." -ForegroundColor Yellow
 Write-Host "      lambda_function.py" -ForegroundColor Gray
-Copy-Item lambda_function.py $packageDir\
+Copy-Item src\lambda_function.py $packageDir\
 Write-Host "      handicap.py" -ForegroundColor Gray
-Copy-Item handicap.py $packageDir\
+Copy-Item src\handicap.py $packageDir\
 Write-Host "      Done" -ForegroundColor Green
 
 # Create zip file
