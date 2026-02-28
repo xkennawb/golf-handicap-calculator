@@ -1571,8 +1571,8 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         # Best/worst hole
         bw = player_best_worst.get(name)
         if bw:
-            message += f"⭐ Fav Hole: H{bw['best_hole']} ({bw['best_avg']:.1f} stb)\n"
-            message += f"💀 Bogey Hole: H{bw['worst_hole']} ({bw['worst_avg']:.1f} stb)\n"
+            message += f"⭐ Fav: H{bw['best_hole']} ({bw['best_avg']:.1f} stb)\n"
+            message += f"💀 Bogey: H{bw['worst_hole']} ({bw['worst_avg']:.1f} stb)\n"
         message += "\n"
     
     message += "```"
