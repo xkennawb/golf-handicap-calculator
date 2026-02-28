@@ -151,22 +151,29 @@ python check_db.py
 - `README.md`, `LICENSE` - Documentation and licensing
 
 ### src/ Directory (Source Code)
-- `src/lambda_function.py` - AWS Lambda entry point (1575 lines, includes all features)
+- `src/lambda_function.py` - AWS Lambda entry point (~1830 lines, includes all features)
 - `src/handicap.py` - Australian WHS handicap calculator with Stableford
 - `src/weather.py`, `src/golf_system.py` - Supporting modules
 
 ## WhatsApp Summary Format
 
-**Optimized for mobile viewing** (as of Dec 31, 2025):
+**Optimized for mobile viewing** (as of Feb 28, 2026):
 
 1. **TODAY'S RESULTS** - Compact tables with rankings
-2. **DECEMBER BOARD** - Monthly leaderboard with season emojis and trends (📈📉➡️)
+2. **🎯 TODAY'S HIGHLIGHTS** - Hole-by-hole scoring highlights (🦢 albatross, 🦅 eagle, 🐦 birdie, ⛳ par)
 3. **🐐 LEADERBOARD** - Season standings with qualified players only (10+ rounds after June)
 4. **⚠️ Not Qualified** - Separate section for <10 rounds (after June only)
 5. **PLAYER STATS** - Alphabetical by first name, country flags, emoji bullets (🎯📊🏆📈)
-6. **AI COMMENTARY** - Weather + banter + handicap changes + predictions
+6. **AI COMMENTARY** - Weather + banter + handicap changes + predictions + Steve "cheat" banter
 
-**Recent Changes**:
+**Recent Changes (Feb 2026)**:
+- Added TODAY'S HIGHLIGHTS section with per-player albatross/eagle/birdie/par counts
+- Hole-by-hole scores extracted from Tag Heuer scorecard during parsing
+- Fallback: re-scrapes scorecard URL for rounds submitted before feature existed
+- AI commentary always includes a joke about Steve being "a little cheat"
+- Removed MONTHLY BOARD section for cleaner reports
+
+**Previous Changes (Dec 2025)**:
 - Changed "2025 LEADERBOARD" to "🐐 LEADERBOARD" (no year, GOAT emoji)
 - Split qualified (10+ rounds) and non-qualified (<10 rounds) players after June
 - Player stats now sorted alphabetically by first name

@@ -135,25 +135,30 @@ class HandicapCalculator:
         else:
             adjusted_differentials = score_differentials
         
-        # Take the best 8 of last 20 (or fewer if not enough scores)
-        num_scores = len(adjusted_differentials)
+        # WHS: Use only the LAST 20 differentials (rolling window)
+        last_20 = adjusted_differentials[-20:] if len(adjusted_differentials) > 20 else adjusted_differentials
+        num_scores = len(last_20)
         
         if num_scores < 3:
             # Not enough scores, return current index
             return current_index
         
-        # Determine how many scores to use
-        if num_scores >= 20:
-            num_to_use = 8
-        elif num_scores >= 10:
-            num_to_use = 5
-        elif num_scores >= 6:
-            num_to_use = 3
-        else:
-            num_to_use = min(2, num_scores)
+        # WHS lookup table: number of differentials to use based on rounds available
+        # Reference: World Handicap System Rules of Handicapping
+        whs_table = {
+            3: 1, 4: 1, 5: 1,
+            6: 2, 7: 2, 8: 2,
+            9: 3, 10: 3, 11: 3,
+            12: 4, 13: 4, 14: 4,
+            15: 5, 16: 5,
+            17: 6, 18: 6,
+            19: 7,
+            20: 8
+        }
+        num_to_use = whs_table.get(num_scores, 8)
         
-        # Sort and take best scores
-        sorted_diffs = sorted(adjusted_differentials)
+        # Sort last 20 and take best (lowest) differentials
+        sorted_diffs = sorted(last_20)
         best_diffs = sorted_diffs[:num_to_use]
         
         # Calculate average

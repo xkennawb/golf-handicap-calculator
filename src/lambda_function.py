@@ -173,6 +173,10 @@ FRONT_9_CONFIG = {
     'rating_display': 35.0,  # Warringah Whites official - for course handicap display only
 }
 
+# Hole-by-hole par values for Warringah Golf Club
+BACK_9_PARS = [5, 4, 3, 4, 3, 4, 4, 3, 4]   # Holes 10-18, par 34
+FRONT_9_PARS = [4, 4, 5, 4, 3, 4, 4, 3, 4]   # Holes 1-9, par 35
+
 def calculate_course_handicap(index, slope, rating, par):
     """
     WHS Course Handicap Formula: CH = round(Index × Slope/113 + (Rating - Par))
@@ -252,12 +256,13 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
     cutoff_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     
     # Get indices from rounds in last 365 days
+    # Note: update_handicap_index now correctly uses only last 20 diffs internally
     low_handicap_index = None
     recent_indices = []
     
     for i, round_data in enumerate(rounds_list):
         if round_data.get('date', '') >= cutoff_date:
-            # Calculate index up to this point
+            # Calculate index up to this point (last-20 window applied inside update_handicap_index)
             temp_index = hc_calc.update_handicap_index(0, differentials[:i+1])
             recent_indices.append(temp_index)
     
@@ -265,6 +270,7 @@ def calculate_player_handicap_index(rounds_list, slope, rating):
         low_handicap_index = min(recent_indices)
     
     # Calculate final index using WHS method with hard/soft cap
+    # update_handicap_index will use only the last 20 differentials
     calculated_index = hc_calc.update_handicap_index(0, differentials, low_handicap_index=low_handicap_index)
     return calculated_index
 
@@ -363,6 +369,23 @@ def parse_tag_heuer_url(url):
                     if not recap_cells:
                         continue
                     
+                    # Extract hole-by-hole scores from Score row
+                    hole_scores_front9 = []
+                    hole_scores_back9 = []
+                    for row in score_table.find_all('div', recursive=False):
+                        cells = row.find_all('div')
+                        texts = [c.get_text().strip() for c in cells]
+                        if not texts:
+                            continue
+                        if texts[0] == 'Score':
+                            all_vals = texts[1::2]  # De-duplicate (take every other)
+                            if len(all_vals) >= 19:  # 18-hole card
+                                hole_scores_front9 = [int(v) if v and v.isdigit() else 0 for v in all_vals[0:9]]
+                                hole_scores_back9 = [int(v) if v and v.isdigit() else 0 for v in all_vals[10:19]]
+                            elif len(all_vals) >= 9:  # 9-hole card
+                                hole_scores_back9 = [int(v) if v and v.isdigit() else 0 for v in all_vals[:9]]
+                            break
+                    
                     # Extract numeric values from recap cells
                     recap_values = []
                     recap_cells_text = []  # Keep all text for debugging
@@ -441,6 +464,11 @@ def parse_tag_heuer_url(url):
                     if 'gross' in locals() and 'stableford' in locals():
                         # Check if this is a split 18-hole player
                         if gross == 'SPLIT_18' and stableford == 'SPLIT_18':
+                            # Add hole scores to each 9's data
+                            if hole_scores_front9:
+                                front9_data['hole_scores'] = hole_scores_front9
+                            if hole_scores_back9:
+                                back9_data['hole_scores'] = hole_scores_back9
                             # Add to player list with split marker and both 9s data
                             players.append({
                                 'name': normalized_name,
@@ -450,13 +478,18 @@ def parse_tag_heuer_url(url):
                                 'back9': back9_data
                             })
                         else:
-                            # Regular 9-hole player
-                            players.append({
+                            # Regular 9-hole player - determine which 9 was played
+                            player_data = {
                                 'name': normalized_name,
                                 'index': Decimal(str(index)),
                                 'gross': gross,
                                 'stableford': stableford
-                            })
+                            }
+                            if course == 'back9' and hole_scores_back9:
+                                player_data['hole_scores'] = hole_scores_back9
+                            elif course == 'front9' and hole_scores_front9:
+                                player_data['hole_scores'] = hole_scores_front9
+                            players.append(player_data)
         
         # Check if we found any valid players
         if not players:
@@ -748,6 +781,7 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
    - DO NOT make up family relationships that don't exist
    - DO NOT call anyone "dad" or "son" or "father" unless it's Andy and Fletcher
    - If Fletcher is not playing, there is NO father-son dynamic today
+7. STEVE "THE CHEAT" - If Steve (Steve Lewthwaite) played today, you MUST include a cheeky jab about him being a little cheat or getting away with something dodgy. If Steve WON the round on stableford points, really lay it on thick - suggest his handicap is suspicious, he's gaming the system, or question whether his scores are legitimate. Keep it funny and light-hearted but always poke fun at Steve being a cheat.
 
 Format:
 Weather: [temperature, conditions, wind - factual only, no jokes]
@@ -768,7 +802,7 @@ Andy maintains his stranglehold on the season with a commanding average, while t
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a golf commentator. Write ONE factual weather sentence, then humorous sentences about ALL players mentioned, then ONE sentence about season standings. NEVER mention weather in the player commentary. CRITICAL: Only Andy Jakes and Fletcher Jakes are related (father-son). Bruce, Steve, and Hamish are NOT related to anyone - they are friends only. DO NOT invent family relationships."},
+                {"role": "system", "content": "You are a golf commentator. Write ONE factual weather sentence, then humorous sentences about ALL players mentioned, then ONE sentence about season standings. NEVER mention weather in the player commentary. CRITICAL: Only Andy Jakes and Fletcher Jakes are related (father-son). Bruce, Steve, and Hamish are NOT related to anyone - they are friends only. DO NOT invent family relationships. ALWAYS include a joke about Steve being a little cheat, especially if he won the round."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=250,
@@ -1117,91 +1151,132 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         if has_18_holes and round_idx == 0:
             message += ""
     
+    # Scorecard highlights - show birdies, pars etc for each player
+    if not is_other_course:
+        # Check if any player in today's rounds has hole_scores stored
+        has_stored_scores = any(
+            player.get('hole_scores')
+            for round_data in todays_rounds
+            for player in round_data['players']
+        )
+        
+        # If no stored hole scores, try to scrape from scorecard URL
+        scraped_scores = {}
+        if not has_stored_scores:
+            scorecard_url = latest_round.get('scorecard_url')
+            if scorecard_url:
+                try:
+                    print(f"Scraping hole scores from: {scorecard_url}")
+                    resp = requests.get(scorecard_url, timeout=15, verify=False)
+                    sc_soup = BeautifulSoup(resp.text, 'html.parser')
+                    
+                    sc_name_map = {
+                        'Andy J.': 'Andy Jakes',
+                        'Fletcher J.': 'Fletcher Jakes',
+                        'Hamish M.': 'Hamish McNee',
+                        'Bruce Kennaway': 'Bruce Kennaway',
+                        'Steve': 'Steve'
+                    }
+                    
+                    sc_sections = sc_soup.find_all(string=re.compile(r'\(Index \d+\.\d+\)'))
+                    for ps in sc_sections:
+                        gp = ps.parent.parent if ps.parent else None
+                        if not gp:
+                            continue
+                        pt = gp.get_text().strip()
+                        sc_match = re.search(r'(.+?)\s*\(Index\s+(\d+\.\d+)\)', pt)
+                        if not sc_match:
+                            continue
+                        sc_name = sc_name_map.get(sc_match.group(1).strip(), sc_match.group(1).strip())
+                        if sc_name in scraped_scores:
+                            continue
+                        
+                        sc_table = gp.find_next('div', class_='score-table')
+                        if not sc_table:
+                            continue
+                        
+                        for row in sc_table.find_all('div', recursive=False):
+                            cells = row.find_all('div')
+                            texts = [c.get_text().strip() for c in cells]
+                            if not texts or texts[0] != 'Score':
+                                continue
+                            all_vals = texts[1::2]
+                            if len(all_vals) >= 19:  # 18-hole card
+                                scraped_scores[sc_name] = {
+                                    'front9': [int(v) if v and v.isdigit() else 0 for v in all_vals[0:9]],
+                                    'back9': [int(v) if v and v.isdigit() else 0 for v in all_vals[10:19]]
+                                }
+                            elif len(all_vals) >= 9:  # 9-hole card
+                                scraped_scores[sc_name] = {
+                                    'back9': [int(v) if v and v.isdigit() else 0 for v in all_vals[:9]]
+                                }
+                            break
+                    print(f"Scraped hole scores for: {list(scraped_scores.keys())}")
+                except Exception as e:
+                    print(f"Could not scrape hole scores: {e}")
+        
+        # Collect highlights across all today's rounds
+        player_highlights = {}
+        for round_data in todays_rounds:
+            is_back9 = round_data['course'] == 'back9' or '-back9' in round_data['date']
+            pars = BACK_9_PARS if is_back9 else FRONT_9_PARS
+            nine = 'back9' if is_back9 else 'front9'
+            
+            for player in round_data['players']:
+                hole_scores = player.get('hole_scores', [])
+                # Fall back to scraped scores if not stored
+                if not hole_scores and player['name'] in scraped_scores:
+                    hole_scores = scraped_scores[player['name']].get(nine, [])
+                
+                if not hole_scores or len(hole_scores) != 9:
+                    continue
+                
+                name = player['name']
+                if name not in player_highlights:
+                    player_highlights[name] = {'albatross': 0, 'eagle': 0, 'birdie': 0, 'par': 0}
+                
+                for score, par in zip(hole_scores, pars):
+                    if score <= 0:
+                        continue  # Skip blobs/missing
+                    diff = score - par
+                    if diff <= -3:
+                        player_highlights[name]['albatross'] += 1
+                    elif diff == -2:
+                        player_highlights[name]['eagle'] += 1
+                    elif diff == -1:
+                        player_highlights[name]['birdie'] += 1
+                    elif diff == 0:
+                        player_highlights[name]['par'] += 1
+        
+        # Only show if we have data
+        if player_highlights:
+            message += "*🎯 TODAY'S HIGHLIGHTS:*\n"
+            message += "```\n"
+            message += "Player      🦢 🦅  🐦  ⛳\n"
+            message += "─────────────────────────\n"
+            
+            # Sort by most impressive scores (albatross+eagles+birdies first, then pars)
+            sorted_highlights = sorted(
+                player_highlights.items(),
+                key=lambda x: (x[1]['albatross']*100 + x[1]['eagle']*10 + x[1]['birdie'], x[1]['par']),
+                reverse=True
+            )
+            
+            for name, counts in sorted_highlights:
+                display_name = get_display_name(name)
+                first_name = display_name.split()[0]
+                
+                albatross = counts['albatross']
+                eagles = counts['eagle']
+                birdies = counts['birdie']
+                pars = counts['par']
+                
+                message += f"{first_name:11s} {albatross:1d}  {eagles:1d}   {birdies:1d}   {pars:1d}\n"
+            
+            message += "```\n"
+    
     # Get current year from latest round
     current_year = latest_date_obj.year
-    
-    # Filter rounds for current year only (needed for monthly tournament)
-    current_year_rounds = [r for r in rounds if parse_date_flexible(r['date']).year == current_year]
-    
-    # ========================================
-    # MONTHLY TOURNAMENT (Current month only)
-    # ========================================
-    current_month = latest_date_obj.month
-    current_month_name = latest_date_obj.strftime('%B')
-    
-    # Get season emoji based on month (Southern Hemisphere)
-    def get_season_emoji(month):
-        if month in [12, 1, 2]:  # Summer
-            return "☀️"
-        elif month in [3, 4, 5]:  # Autumn
-            return "🍂"
-        elif month in [6, 7, 8]:  # Winter
-            return "❄️"
-        else:  # Spring (9, 10, 11)
-            return "🌸"
-    
-    season_emoji = get_season_emoji(current_month)
-    
-    # Calculate monthly stats
-    monthly_stats = {}
-    for round_data in current_year_rounds:
-        round_date = parse_date_flexible(round_data['date'])
-        if round_date.month == current_month:
-            for player in round_data['players']:
-                name = player['name']
-                if name not in monthly_stats:
-                    monthly_stats[name] = {
-                        'total_points': 0,
-                        'rounds': 0
-                    }
-                monthly_stats[name]['total_points'] += player['stableford']
-                monthly_stats[name]['rounds'] += 1
-    
-    # Calculate monthly averages
-    monthly_leaderboard = []
-    for name, stats in monthly_stats.items():
-        if stats['rounds'] > 0:
-            avg = stats['total_points'] / stats['rounds']
-            monthly_leaderboard.append((name, avg, stats['rounds']))
-    
-    # Sort by average
-    monthly_leaderboard.sort(key=lambda x: x[1], reverse=True)
-    
-    # Display monthly tournament if we have data
-    if monthly_leaderboard:
-        message += f"*{season_emoji} {current_month_name.upper()} BOARD:*\n"
-        message += "```\n"
-        
-        # Table header - compact format (removed Rds column)
-        message += "Rk Player       Avg\n"
-        message += "─────────────────────────\n"
-        
-        for rank, (name, avg, round_count) in enumerate(monthly_leaderboard, 1):
-            emoji = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else "  "
-            display_name = get_display_name(name)
-            
-            # Use first name only for compact display
-            first_name = display_name.split()[0]
-            
-            # Calculate trend for this player (last 5 rounds in current month)
-            player_monthly_rounds = []
-            for round_data in current_year_rounds:
-                round_date = parse_date_flexible(round_data['date'])
-                if round_date.month == current_month:
-                    for player in round_data['players']:
-                        if player['name'] == name:
-                            player_monthly_rounds.append(player['stableford'])
-            
-            # Determine trend emoji
-            if len(player_monthly_rounds) >= 3:
-                trend = "📈" if player_monthly_rounds[-1] > player_monthly_rounds[0] else "📉" if player_monthly_rounds[-1] < player_monthly_rounds[0] else "➡️"
-            else:
-                trend = "➡️"
-            
-            # Format table row with compact spacing (removed round_count, added trend)
-            message += f"{emoji}{rank:2d} {first_name:11s} {avg:4.1f}{trend}\n"
-        
-        message += "```\n"
     
     # Calculate form guide BEFORE season leaderboard (need for trend indicators)
     form_guide = {}

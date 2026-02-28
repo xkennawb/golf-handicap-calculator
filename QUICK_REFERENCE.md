@@ -3,7 +3,7 @@
 ## 🚨 CRITICAL: Read This First
 
 ### Files to Edit
-- ✅ **ALWAYS EDIT**: `src/lambda_function.py` (1755 lines, has AI commentary and all features)
+- ✅ **ALWAYS EDIT**: `src/lambda_function.py` (~1830 lines, has AI commentary and all features)
 - ❌ **DELETED**: `lambda_function_aws.py` (removed Dec 25, 2025 to prevent confusion)
 
 ### Build & Deploy
@@ -203,7 +203,7 @@ Before deploying changes:
 
 ---
 
-**Last Updated**: December 31, 2025
+**Last Updated**: February 28, 2026
 **Status**: ✅ All systems operational
 
 ## 📱 WhatsApp Summary Format (Current)
@@ -211,20 +211,20 @@ Before deploying changes:
 ### Section Order
 1. 📅 Date & Scorecard Link
 2. 🏆 TODAY'S RESULTS (compact table, 25-char underlines)
-3. 🏅 DECEMBER BOARD (monthly leaderboard with trend emojis)
+3. 🎯 TODAY'S HIGHLIGHTS (per-player 🦢 albatross, 🦅 eagle, 🐦 birdie, ⛳ par counts)
 4. 🐐 LEADERBOARD (season leaderboard with trend emojis, qualified players only)
 5. ⚠️ Not Qualified (after June only, <10 rounds, no headers, aligned columns)
 6. 📋 PLAYER STATS (alphabetical by first name, country flags, uppercase names, emoji bullets)
-7. 🎭 AI COMMENTARY (weather + banter + handicap changes + prediction)
+7. 🎭 AI COMMENTARY (weather + banter + handicap changes + prediction + Steve "cheat" joke)
 
 ### Removed Sections
 - ❌ Performance Trends (replaced with trend emojis)
 - ❌ FUN STATS (too busy for mobile)
+- ❌ MONTHLY BOARD (removed for cleaner reports)
 
 ### Format Standards
 - All underlines: 25 characters, thin dash (─)
 - Spacing: Single `\n` between sections
-- Headers: Shortened for mobile (e.g., "DECEMBER BOARD" not "DECEMBER LEADERBOARD")
 - Leaderboard: "🐐 LEADERBOARD" (no year, just LEADERBOARD)
 - Player stats: Alphabetical by first name (Andy, Bruce, Fletcher, Hamish, Steve)
 - Country flags: 🏴󠁧󠁢󠁥󠁮󠁧󠁿 England, 🇦🇺 Australia, 🇳🇿 New Zealand before player names
@@ -233,4 +233,8 @@ Before deploying changes:
 - DNQ: Only after June (month > 6), shown as `⚠️ DNQ` on rounds line
 - Not Qualified section: After June, no bold, no headers/underlines, aligned with leaderboard
 - AI mentions handicap changes when significant (>0.05)
+- AI always includes a joke about Steve being "a little cheat" (especially if he wins)
+- TODAY'S HIGHLIGHTS: Extracts hole-by-hole scores from scorecard, compares to par
+- Highlights fallback: Re-scrapes scorecard URL if hole_scores not stored in round data
+- Hole par values: BACK_9_PARS = [5,4,3,4,3,4,4,3,4], FRONT_9_PARS = [4,4,5,4,3,4,4,3,4]
 - Year-over-year comparison: Disabled (can be re-enabled by changing if False to if current_year >= 2026)
