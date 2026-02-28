@@ -177,6 +177,54 @@ FRONT_9_CONFIG = {
 BACK_9_PARS = [5, 4, 3, 4, 3, 4, 4, 3, 4]   # Holes 10-18, par 34
 FRONT_9_PARS = [4, 4, 5, 4, 3, 4, 4, 3, 4]   # Holes 1-9, par 35
 
+# Stroke index values (18-hole SI) for handicap stroke allocation
+BACK_9_SI = [8, 9, 18, 6, 17, 3, 14, 12, 2]   # Holes 10-18
+FRONT_9_SI = [15, 1, 5, 10, 16, 7, 13, 4, 11]  # Holes 1-9
+
+# Hole numbers for display
+BACK_9_HOLES = [10, 11, 12, 13, 14, 15, 16, 17, 18]
+FRONT_9_HOLES = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+def allocate_strokes(course_handicap, hole_si_values):
+    """
+    Allocate handicap strokes using 18-hole stroke index method.
+    Each hole with SI <= CH gets 1 stroke.
+    If CH > 18, holes with SI <= (CH-18) get an additional stroke.
+    """
+    strokes = [0] * len(hole_si_values)
+    for i, si in enumerate(hole_si_values):
+        if si <= course_handicap:
+            strokes[i] += 1
+        if course_handicap > 18 and si <= (course_handicap - 18):
+            strokes[i] += 1
+        if course_handicap > 36 and si <= (course_handicap - 36):
+            strokes[i] += 1
+    return strokes
+
+def calculate_stableford_per_hole(scores, pars, strokes):
+    """
+    Calculate Stableford points for each hole.
+    Returns list of points per hole.
+    """
+    points = []
+    for score, par, s in zip(scores, pars, strokes):
+        if score <= 0:
+            points.append(0)
+            continue
+        net_score = score - s
+        diff = net_score - par
+        if diff <= -2:
+            points.append(4)  # Eagle or better
+        elif diff == -1:
+            points.append(3)  # Birdie
+        elif diff == 0:
+            points.append(2)  # Par
+        elif diff == 1:
+            points.append(1)  # Bogey
+        else:
+            points.append(0)  # Double bogey+
+    return points
+
 def calculate_course_handicap(index, slope, rating, par):
     """
     WHS Course Handicap Formula: CH = round(Index × Slope/113 + (Rating - Par))
@@ -578,6 +626,8 @@ def get_all_rounds():
                 player['index'] = float(player['index'])
                 player['gross'] = int(player['gross'])
                 player['stableford'] = int(player['stableford'])
+                if 'hole_scores' in player:
+                    player['hole_scores'] = [int(s) for s in player['hole_scores']]
         
         # Sort by date
         rounds.sort(key=lambda x: x['date'])
@@ -994,6 +1044,147 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     # Filter to only include players with at least 1 round in current season
     active_players = {name: stats for name, stats in player_stats.items() if stats['rounds_count'] > 0}
     
+    # ========================================
+    # PER-HOLE STABLEFORD ANALYSIS (Best/Worst Hole)
+    # ========================================
+    # Collect hole-by-hole Stableford points across all rounds for each player
+    # First, try to scrape any rounds missing hole_scores (historical backfill)
+    rounds_needing_scrape = {}
+    for round_data in rounds:
+        has_any_scores = any(p.get('hole_scores') for p in round_data.get('players', []))
+        if not has_any_scores and round_data.get('scorecard_url'):
+            rounds_needing_scrape[round_data['date']] = round_data
+    
+    # Batch scrape missing hole scores (limit to avoid timeout)
+    scraped_cache = {}
+    MAX_SCRAPES = 60  # Safety limit
+    scrape_count = 0
+    sc_name_map = {
+        'Andy J.': 'Andy Jakes',
+        'Fletcher J.': 'Fletcher Jakes',
+        'Hamish M.': 'Hamish McNee',
+        'Bruce Kennaway': 'Bruce Kennaway',
+        'Steve': 'Steve',
+        'Steve Lewthwaite': 'Steve',
+        'Steve L.': 'Steve',
+    }
+    
+    for date_key, round_data in rounds_needing_scrape.items():
+        if scrape_count >= MAX_SCRAPES:
+            break
+        url = round_data.get('scorecard_url')
+        if not url:
+            continue
+        try:
+            resp = requests.get(url, timeout=10, verify=False)
+            sc_soup = BeautifulSoup(resp.text, 'html.parser')
+            sc_sections = sc_soup.find_all(string=re.compile(r'\(Index \d+\.\d+\)'))
+            for ps in sc_sections:
+                gp = ps.parent.parent if ps.parent else None
+                if not gp:
+                    continue
+                pt = gp.get_text().strip()
+                sc_match = re.search(r'(.+?)\s*\(Index\s+(\d+\.\d+)\)', pt)
+                if not sc_match:
+                    continue
+                sc_name = sc_name_map.get(sc_match.group(1).strip(), sc_match.group(1).strip())
+                cache_key = f"{date_key}|{sc_name}"
+                if cache_key in scraped_cache:
+                    continue
+                sc_table = gp.find_next('div', class_='score-table')
+                if not sc_table:
+                    continue
+                for row in sc_table.find_all('div', recursive=False):
+                    cells = row.find_all('div')
+                    texts = [c.get_text().strip() for c in cells]
+                    if not texts or texts[0] != 'Score':
+                        continue
+                    all_vals = texts[1::2]
+                    if len(all_vals) >= 19:  # 18-hole card
+                        scraped_cache[f"{date_key}|{sc_name}"] = {
+                            'front9': [int(v) if v and v.isdigit() else 0 for v in all_vals[0:9]],
+                            'back9': [int(v) if v and v.isdigit() else 0 for v in all_vals[10:19]]
+                        }
+                    elif len(all_vals) >= 9:  # 9-hole card
+                        scraped_cache[f"{date_key}|{sc_name}"] = {
+                            'back9': [int(v) if v and v.isdigit() else 0 for v in all_vals[:9]]
+                        }
+                    break
+            scrape_count += 1
+        except Exception as e:
+            print(f"Scrape failed for {date_key}: {e}")
+            scrape_count += 1
+    
+    print(f"Scraped hole scores for {scrape_count} historical rounds")
+    
+    # Now build per-hole Stableford stats for each player
+    # Structure: player_hole_stats[name][hole_number] = [list of stableford points]
+    player_hole_stats = {}
+    
+    for round_data in rounds:
+        is_back9 = round_data['course'] == 'back9' or '-back9' in round_data['date']
+        pars = BACK_9_PARS if is_back9 else FRONT_9_PARS
+        si_values = BACK_9_SI if is_back9 else FRONT_9_SI
+        hole_numbers = BACK_9_HOLES if is_back9 else FRONT_9_HOLES
+        rd_config = BACK_9_CONFIG if is_back9 else FRONT_9_CONFIG
+        
+        for player in round_data.get('players', []):
+            name = player['name']
+            hole_scores = player.get('hole_scores', [])
+            
+            # Fall back to scraped data
+            if not hole_scores:
+                nine = 'back9' if is_back9 else 'front9'
+                cache_key = f"{round_data['date']}|{name}"
+                if cache_key in scraped_cache:
+                    hole_scores = scraped_cache[cache_key].get(nine, [])
+            
+            if not hole_scores or len(hole_scores) != 9:
+                continue
+            
+            # Calculate course handicap at time of round
+            player_index = float(player.get('index', 0))
+            ch = calculate_course_handicap(
+                player_index,
+                rd_config['slope_display'],
+                rd_config['rating_display'],
+                rd_config['par']
+            )
+            
+            # Allocate strokes and calculate Stableford per hole
+            strokes = allocate_strokes(ch, si_values)
+            stb_per_hole = calculate_stableford_per_hole(hole_scores, pars, strokes)
+            
+            if name not in player_hole_stats:
+                player_hole_stats[name] = {}
+            
+            for hole_num, stb_pts in zip(hole_numbers, stb_per_hole):
+                if hole_num not in player_hole_stats[name]:
+                    player_hole_stats[name][hole_num] = []
+                player_hole_stats[name][hole_num].append(stb_pts)
+    
+    # Calculate best/worst hole for each player
+    player_best_worst = {}
+    for name, hole_data in player_hole_stats.items():
+        if not hole_data:
+            continue
+        
+        hole_avgs = {}
+        for hole_num, points_list in hole_data.items():
+            if len(points_list) >= 2:  # Need at least 2 rounds on a hole for meaningful average
+                hole_avgs[hole_num] = sum(points_list) / len(points_list)
+        
+        if hole_avgs:
+            best_hole = max(hole_avgs, key=hole_avgs.get)
+            worst_hole = min(hole_avgs, key=hole_avgs.get)
+            player_best_worst[name] = {
+                'best_hole': best_hole,
+                'best_avg': hole_avgs[best_hole],
+                'worst_hole': worst_hole,
+                'worst_avg': hole_avgs[worst_hole],
+                'rounds_with_data': max(len(v) for v in hole_data.values())
+            }
+    
     # Sort by average
     sorted_players = sorted(active_players.items(), key=lambda x: x[1]['avg_stableford'], reverse=True)
     
@@ -1376,7 +1567,12 @@ def generate_whatsapp_summary(rounds, specific_date=None):
         message += f"🎯 {stats['rounds_count']} rounds{dnq_text}\n"
         message += f"📊 WHS {stats['calculated_index']:.1f}{index_arrow} | War HCP {stats['latest_ch']}{ch_arrow}\n"
         message += f"🏆 PBs: {stats['best_stableford']} stb | {stats['best_gross']} gs\n"
-        message += f"📈 Avg: {stats['avg_gross']:.1f}\n\n"
+        message += f"📈 Avg: {stats['avg_gross']:.1f}\n"
+        # Best/worst hole
+        bw = player_best_worst.get(name)
+        if bw:
+            message += f"⭐ Best: H{bw['best_hole']} ({bw['best_avg']:.1f}) | 💀 Worst: H{bw['worst_hole']} ({bw['worst_avg']:.1f})\n"
+        message += "\n"
     
     message += "```"
     
