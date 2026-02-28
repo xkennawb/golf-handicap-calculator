@@ -1117,11 +1117,16 @@ def generate_whatsapp_summary(rounds, specific_date=None):
     
     print(f"Scraped hole scores for {scrape_count} historical rounds")
     
-    # Now build per-hole Stableford stats for each player
+    # Now build per-hole Stableford stats for each player (current year only)
     # Structure: player_hole_stats[name][hole_number] = [list of stableford points]
     player_hole_stats = {}
     
     for round_data in rounds:
+        # Only include current year rounds
+        round_date = parse_date_flexible(round_data['date'])
+        if round_date.year != current_year:
+            continue
+        
         is_back9 = round_data['course'] == 'back9' or '-back9' in round_data['date']
         pars = BACK_9_PARS if is_back9 else FRONT_9_PARS
         si_values = BACK_9_SI if is_back9 else FRONT_9_SI
